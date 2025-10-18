@@ -3,29 +3,40 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Мини‑апп — Кнопка «привет» + счётчик (v3)</title>
+<title>Мини‑апп — Кнопка «привет» + счётчик (v4)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root { --gap: 16px; }
 html, body { height: 100%; margin: 0; }
+/* убираем синий тап‑хайлайт и выделения при тапе */
+* { -webkit-tap-highlight-color: transparent; }
 body {
 display: grid;
 place-items: center;
 background: #ffffff;
 font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 color: #111;
+user-select: none;
 }
 main { display: grid; justify-items: center; gap: var(--gap); }
 button {
 font-size: clamp(24px, 6vw, 42px);
 padding: 24px 48px;
-border: 2px solid #111; /* для наглядности */
+border: 2px solid #111;
 border-radius: 20px;
 background: #e53935;
 color: #fff;
 box-shadow: 0 8px 24px rgba(0,0,0,.15);
 cursor: pointer;
+-webkit-appearance: none; /* iOS Safari */
+outline: none; /* базово отключаем */
+touch-action: manipulation;
 }
+/* полностью убираем синий фокус/обводку во всех браузерах */
+button:focus, button:focus-visible { outline: none; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+button::-moz-focus-inner { border: 0; }
+
+
 button:active { transform: translateY(1px); }
 .counter { font-size: clamp(20px, 4vw, 26px); opacity: .95; margin-top: 6px; }
 footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.5 }
