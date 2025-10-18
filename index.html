@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case (v15)</title>
+  <title>Мини‑апп — Tap + Case + Инвентарь (v16)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --gap: 18px;
-      --bg1: #0f0f16;
+      --bg1: #0f0f16;          /* фон */
       --bg2: #15182b;
       --fg: #eaeaea;
-      --accent: #ff3b30;
-      --brand1: #7c3aed;
+      --accent: #ff3b30;       /* TAP */
+      --brand1: #7c3aed;       /* фиолетово‑розовые градиенты под кейсы */
       --brand2: #ff3b81;
       --glass: rgba(255,255,255,.06);
       --glass-border: rgba(255,255,255,.22);
-      --nw: 88px; /* базовая ширина карточки числа (реальное измерение берём из DOM) */
+      --card-w: 156px;         /* ширина карточки в рулетке с фото */
+      --seg-h: 54px;           /* высота нижней панели‑сегментов */
     }
     html, body { height: 100%; margin: 0; }
     * { -webkit-tap-highlight-color: transparent; }
@@ -52,50 +53,68 @@
     /* слой для искр */
     #fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
 
-    main { width: 100%; max-width: 920px; padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
+    /* Контент с отступом под нижнюю панель */
+    main { width: 100%; max-width: 980px; padding: 24px 16px calc(var(--seg-h) + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
 
-    .view { display: none; min-height: calc(100dvh - 140px); justify-items: center; align-content: center; gap: var(--gap); }
+    .view { display: none; min-height: calc(100dvh - var(--seg-h) - 140px); justify-items: center; align-content: center; gap: var(--gap); }
     .view.is-active { display: grid; }
 
     /* TAP */
     .btn { font-size: clamp(22px, 5vw, 40px); letter-spacing: 1px; text-transform: uppercase; padding: 22px 46px; border: 0; border-radius: 18px; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), #ff6a55); box-shadow: 0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25); transition: transform .06s ease, filter .2s ease; }
     .btn:active { transform: translateY(1px) scale(0.995); }
 
-    /* НИЖНЕЕ МЕНЮ: сегменты (не кнопки) */
-    .segbar { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0));
-              display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: stretch;
-              background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 25%, rgba(0,0,0,.55) 100%);
-              backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border); }
-    .seg {
-      position: relative; height: 42px; display: grid; place-items: center; font-size: 12px; letter-spacing: .3px;
-      color: #cfd3ff; background: rgba(255,255,255,.04);
-    }
+    /* НИЖНЕЕ МЕНЮ: сегменты до краёв */
+    .segbar { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; height: calc(var(--seg-h) + env(safe-area-inset-bottom, 0)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: stretch; background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.75) 100%); border-top: 1px solid var(--glass-border); }
+    .seg { position: relative; display: grid; place-items: center; font-size: 12px; letter-spacing: .3px; color: #cfd3ff; background: rgba(255,255,255,.04); }
     .seg + .seg { border-left: 1px solid rgba(255,255,255,.08); }
     .seg.is-active { color: #fff; background: rgba(255,255,255,.12); box-shadow: inset 0 2px rgba(255,255,255,.25); }
 
-    footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
+    footer { position: fixed; bottom: calc(var(--seg-h) + 4px + env(safe-area-inset-bottom, 0)); left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
 
-    /* кейсы — список */
-    .cases-list { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    /* кейсы — список с одним кейсом */
+    .cases-list { width: 100%; display: grid; grid-template-columns: repeat(1, 220px); justify-content: center; gap: 14px; }
     .case-card { display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12)); border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08); }
-    .case-card .price { font-weight: 800; font-size: 18px; }
+    .case-card img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
+    .case-card .price { font-weight: 800; font-size: 16px; opacity:.85; }
     .case-card button { padding: 8px 12px; font-size: 12px; border-radius: 10px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 10px 24px rgba(124,58,237,.28); }
 
     /* экран открытия кейса */
-    .case-open-view { width: 100%; display: none; gap: 16px; }
+    .case-open-view { width: 100%; display: none; gap: 16px; justify-items: center; }
     .case-open-view.is-active { display: grid; }
     .chosen { font-size: 13px; opacity: .8; }
 
-    /* РУЛЕТКА */
-    .reel { position: relative; width: 100%; max-width: 860px; height: 96px; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.04); transition: opacity 500ms ease; }
+    /* РУЛЕТКА С ФОТО */
+    .reel { position: relative; width: 100%; max-width: 900px; height: 168px; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.06); transition: opacity 500ms ease; }
     .reel.visible { opacity: 1; }
-    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: linear-gradient(180deg, transparent, rgba(255,255,255,.6), transparent); }
+    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: linear-gradient(180deg, transparent, rgba(255,255,255,.75), transparent); }
     .reel-track { display: flex; align-items: center; height: 100%; will-change: transform; transform: translateZ(0); }
-    .n { flex: 0 0 var(--nw); width: var(--nw); text-align:center; font-size: 32px; font-weight: 900; color: #fafafa; opacity:.95; }
-    .n.win { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); }
+    .card { flex: 0 0 var(--card-w); width: var(--card-w); height: 100%; display: grid; grid-template-rows: 1fr auto; align-items: stretch; justify-items: center; gap: 6px; }
+    .card img { width: calc(var(--card-w) - 16px); height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); margin-top: 10px; }
+    .card .label { font-size: 13px; opacity:.75; margin-bottom: 8px; }
+    .card.win .label { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); opacity:1; }
 
-    .open-btn { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
-    .open-btn[disabled] { opacity: .5; cursor: not-allowed; }
+    .actions { display:none; gap:10px; }
+    .actions.is-active { display:grid; grid-auto-flow: column; }
+    .a-btn { padding: 10px 14px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; }
+    .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+    .keep { background: linear-gradient(135deg, #22c55e, #16a34a); }
+
+    /* Инвентарь */
+    .inv-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .inv-card { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
+    .inv-card img { width: 100%; height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); }
+    .inv-card .title { font-size: 12px; opacity:.85 }
+
+    /* Модалка */
+    .modal { position: fixed; inset: 0; display: none; z-index: 40; }
+    .modal.show { display: grid; place-items: center; }
+    .modal::before { content:""; position: absolute; inset:0; background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
+    .modal-card { position: relative; z-index:1; width: min(92vw, 420px); background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--glass-border); border-radius: 14px; padding: 14px; display:grid; gap:10px; }
+    .modal-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); }
+    .modal-title { font-weight: 800; }
+    .modal-actions { display: grid; grid-auto-flow: column; gap: 10px; }
+    .modal .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+    .modal .close { background: linear-gradient(135deg, #6b7280, #4b5563); }
   </style>
 </head>
 <body>
@@ -109,40 +128,65 @@
   <div id="fx-layer"></div>
 
   <main id="views">
+    <!-- TAB: Tap -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
       <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
     </section>
 
+    <!-- TAB: Case -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
+      <!-- один кейс стоимостью 50, с картинкой -->
       <div id="cases-list" class="cases-list">
-        <div class="case-card"><div class="price">50</div><button class="pick" data-cost="50">Выбрать</button></div>
-        <div class="case-card"><div class="price">100</div><button class="pick" data-cost="100">Выбрать</button></div>
-        <div class="case-card"><div class="price">150</div><button class="pick" data-cost="150">Выбрать</button></div>
+        <div class="case-card">
+          <img src="case.png" alt="Кейс" onerror="this.style.opacity=.4;"/>
+          <div class="price">Цена открытия: 50</div>
+          <button class="pick" data-cost="50">Выбрать</button>
+        </div>
       </div>
+      <!-- экран открытия -->
       <section id="case-open-view" class="case-open-view">
         <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
-        <div class="chosen">Сундук: <span id="chosen-cost">—</span></div>
-        <button id="case-open" class="open-btn" disabled>Открыть</button>
+        <div class="actions" id="case-actions">
+          <button class="a-btn sell" id="sell-btn">Продать</button>
+          <button class="a-btn keep" id="keep-btn">Сохранить</button>
+        </div>
       </section>
     </section>
 
+    <!-- TAB: Inventory -->
     <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
-      <p class="case-card">Раздел 2 (скоро)</p>
+      <div class="inv-grid" id="inv-grid"></div>
+      <div id="empty-inv" class="case-card" style="display:none;">Инвентарь пуст</div>
     </section>
+
+    <!-- TAB: 3 (пусто на будущее) -->
     <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
       <p class="case-card">Раздел 3 (скоро)</p>
     </section>
   </main>
 
-  <!-- Сегментированное нижнее меню -->
+  <!-- Сегментированная нижняя панель до краёв экрана -->
   <nav class="segbar" role="tablist" aria-label="Навигация по разделам">
     <div class="seg is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Tap</div>
     <div class="seg" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">Case</div>
-    <div class="seg" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">2</div>
+    <div class="seg" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">Inventory</div>
     <div class="seg" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</div>
   </nav>
 
-  <footer>v15</footer>
+  <!-- Модальное окно для предмета из инвентаря -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <img id="modal-img" alt="item" />
+      <div class="modal-title" id="modal-title"></div>
+      <div id="modal-price"></div>
+      <div class="modal-actions">
+        <button class="a-btn sell" id="modal-sell">Продать</button>
+        <button class="a-btn close" id="modal-close">Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>v16</footer>
 
   <script>
     (function () {
@@ -155,7 +199,7 @@
       const backBtn  = document.getElementById('back-cases');
       const balanceEl= document.getElementById('balance');
 
-      // Сегментированная навигация
+      // Сегментированная навигация (до краёв)
       const tabs = Array.from(document.querySelectorAll('.segbar .seg'));
       const views = { earn: document.getElementById('tab-earn'), '1': document.getElementById('tab-1'), '2': document.getElementById('tab-2'), '3': document.getElementById('tab-3') };
       function switchTo(name){
@@ -166,15 +210,16 @@
 
       // Баланс
       const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
-      const STORAGE_KEY = `tapper-count:${userId}`;
-      let balance = 0; try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){ }
+      const STORAGE_BAL = `tapper-count:${userId}`;
+      const STORAGE_INV = `inventory:${userId}`;
+      let balance = 0; try { const saved = localStorage.getItem(STORAGE_BAL); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){ }
       renderBalance();
 
-      tapBtn.addEventListener('click', (ev) => { spawnSparks(ev); balance += 1; save(); renderBalance(); });
+      tapBtn.addEventListener('click', (ev) => { spawnSparks(ev); balance += 1; saveBal(); renderBalance(); });
 
       resetBtn.addEventListener('click', () => { if (tg && typeof tg.showPopup === 'function') { tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] }, (id)=>{ if(id==='yes') doReset(); }); } else if (confirm('Сбросить баланс?')) doReset(); });
-      function doReset(){ balance = 0; save(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
-      function save(){ try { localStorage.setItem(STORAGE_KEY, String(balance)); } catch(_){} }
+      function doReset(){ balance = 0; saveBal(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
+      function saveBal(){ try { localStorage.setItem(STORAGE_BAL, String(balance)); } catch(_){} }
       function renderBalance(){ balanceEl.textContent = balance; }
 
       function spawnSparks(ev){ const rect = tapBtn.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2; const color = getComputedStyle(tapBtn).backgroundColor || '#fff'; const n = 18; for (let i=0;i<n;i++){ const s = document.createElement('span'); s.className = 'spark'; const angle = (Math.PI * 2) * (i/n) + (Math.random()*0.5); const dist = 40 + Math.random()*70; s.style.left = cx + 'px'; s.style.top = cy + 'px'; s.style.setProperty('--tx', Math.cos(angle)*dist + 'px'); s.style.setProperty('--ty', Math.sin(angle)*dist + 'px'); s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20)) + 'deg'); s.style.setProperty('--dur', (500 + Math.random()*500) + 'ms'); s.style.color = color; fxLayer.appendChild(s); s.addEventListener('animationend', ()=> s.remove()); } }
@@ -182,90 +227,140 @@
       // === КЕЙСЫ ===
       const casesList = document.getElementById('cases-list');
       const openView  = document.getElementById('case-open-view');
-      const chosenEl  = document.getElementById('chosen-cost');
       const caseOpen  = document.getElementById('case-open');
+      const actions   = document.getElementById('case-actions');
+      const sellBtn   = document.getElementById('sell-btn');
+      const keepBtn   = document.getElementById('keep-btn');
+
       const reel      = document.getElementById('reel');
       const track     = document.getElementById('reel-track');
-      let selectedCost = null; let spinning = false;
+
+      // Три фото‑предмета
+      const ITEMS = [
+        { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
+        { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
+        { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
+      ];
+
+      let selectedCost = null; let spinning = false; let lastWin = null;
 
       document.querySelectorAll('.pick').forEach(btn => btn.addEventListener('click', () => {
-        selectedCost = parseInt(btn.dataset.cost, 10);
-        chosenEl.textContent = selectedCost;
+        selectedCost = parseInt(btn.dataset.cost, 10); // всегда 50
+        // переход на экран открытия
         casesList.style.display = 'none';
         openView.classList.add('is-active');
         backBtn.style.display = 'inline-block';
-        caseOpen.disabled = false;
-        // скрываем дорожку до открытия
-        track.innerHTML = '';
-        reel.classList.remove('visible');
-        track.style.transform = 'translateX(0)';
-        track.style.transition = 'none';
+        caseOpen.disabled = false; actions.classList.remove('is-active'); lastWin = null;
+        // скрыть трек до открытия
+        track.innerHTML = ''; reel.classList.remove('visible'); track.style.transform = 'translateX(0)'; track.style.transition = 'none';
       }));
 
-      backBtn.addEventListener('click', () => { if (spinning) return; openView.classList.remove('is-active'); casesList.style.display = ''; backBtn.style.display = 'none'; selectedCost = null; caseOpen.disabled = true; track.innerHTML=''; reel.classList.remove('visible'); });
+      backBtn.addEventListener('click', () => { if (spinning) return; openView.classList.remove('is-active'); casesList.style.display = ''; backBtn.style.display = 'none'; selectedCost = null; caseOpen.disabled = true; track.innerHTML=''; reel.classList.remove('visible'); actions.classList.remove('is-active'); });
 
       caseOpen.addEventListener('click', () => {
         if (!selectedCost || spinning) return;
         if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
-        spinning = true; caseOpen.disabled = true;
-        balance -= selectedCost; save(); renderBalance();
-        const min = Math.max(1, Math.floor(selectedCost/4));
-        const max = selectedCost*2;
-        const reward = rand(min, max);
+        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active');
+        balance -= selectedCost; saveBal(); renderBalance();
 
-        buildTrackShuffleWithWin(min, max, reward);
-        // Показать дорожку: fade-in 0.5с
+        // Случайный выигрыш среди трёх фото
+        const rewardItem = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+        lastWin = rewardItem;
+
+        buildPhotoTrackWithWin(rewardItem);
+
+        // Показать дорожку (fade-in 0.5с) и крутить 2.5с
         reel.classList.add('visible');
-
-        // ТРИФАЗНЫЙ старт анимации, чтобы точно увидеть прокрутку
         requestAnimationFrame(() => {
-          // 1) убедимся, что DOM применил видимость
           // измеряем реальную ширину карточки
-          const firstItem = track.querySelector('.n');
-          const itemW = firstItem ? firstItem.getBoundingClientRect().width : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nw'))||88);
+          const firstCard = track.querySelector('.card');
+          const itemW = firstCard ? firstCard.getBoundingClientRect().width : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 156;
           const centerOffset = (reel.clientWidth - itemW)/2;
-          const span = max - min + 1;
-          const centerIndex = Math.floor(span/2);
-          const repeatN = 3;
-          const targetIndex = (repeatN-1)*span + centerIndex; // всегда одинаковая длина
+          const span = ITEMS.length; // 3
+          const centerIndex = Math.floor(span/2); // 1
+          const repeatN = 4; // длиннее дорожка
+          const targetIndex = (repeatN-1)*span + centerIndex; // фиксированный путь
           const targetOffset = targetIndex * itemW - centerOffset;
 
-          // 2) сброс стилей + рефлоу
+          // сброс и запуск
           track.style.transition = 'none';
           track.style.transform = 'translateX(0px)';
-          void track.offsetWidth; // форс-рефлоу
-
-          // 3) в следующем кадре задаём transition и целевой transform
+          void track.offsetWidth;
           requestAnimationFrame(() => {
             track.style.transition = 'transform 2500ms cubic-bezier(0.06, 0.8, 0.1, 1)';
             track.style.transform = `translateX(${-targetOffset}px)`;
-
             track.addEventListener('transitionend', () => {
               highlightWin(targetIndex);
-              balance += reward; save(); renderBalance();
-              tg?.showAlert?.(`+${reward}`);
-              spinning = false; caseOpen.disabled = false;
-            }, { once: true });
+              spinning = false; caseOpen.disabled = false; actions.classList.add('is-active');
+            }, { once:true });
           });
         });
       });
 
-      function buildTrackShuffleWithWin(min, max, reward){
+      function buildPhotoTrackWithWin(winItem){
         track.innerHTML = '';
-        const nums = []; for(let i=min;i<=max;i++) nums.push(i);
-        const span = nums.length; const centerIndex = Math.floor(span/2); const repeatN = 3;
+        const span = ITEMS.length; const centerIndex = Math.floor(span/2); const repeatN = 4;
         for(let r=0; r<repeatN; r++){
-          const arr = shuffle(nums.slice()); // случайный порядок
-          if (r === repeatN-1){ // последний блок: поставим reward в центр
-            const idx = arr.indexOf(reward); if (idx !== -1){ const t = arr[centerIndex]; arr[centerIndex] = arr[idx]; arr[idx] = t; }
+          const shuffled = shuffle(ITEMS.slice());
+          if (r === repeatN-1){
+            // поставим выигрыш по центру последнего блока
+            const idx = shuffled.findIndex(i => i.key === winItem.key);
+            if (idx !== -1){ const t = shuffled[centerIndex]; shuffled[centerIndex] = shuffled[idx]; shuffled[idx] = t; }
           }
-          for (const n of arr){ const el = document.createElement('div'); el.className = 'n'; el.textContent = n; track.appendChild(el); }
+          for (const it of shuffled){
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.innerHTML = `<img src="${it.src}" alt="${it.name}" onerror="this.style.opacity=.4;"><div class="label">${it.name}</div>`;
+            track.appendChild(el);
+          }
         }
       }
 
       function highlightWin(targetIndex){ const items = Array.from(track.children); items.forEach(el => el.classList.remove('win')); const el = items[targetIndex]; if (el) el.classList.add('win'); }
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-      function rand(min, max){ return Math.floor(Math.random()*(max-min+1)) + min; }
+
+      // Действия после выигрыша: Продать / Сохранить
+      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
+
+      // === Инвентарь ===
+      const invGrid = document.getElementById('inv-grid');
+      const emptyInv = document.getElementById('empty-inv');
+      const modal = document.getElementById('modal');
+      const modalImg = document.getElementById('modal-img');
+      const modalTitle = document.getElementById('modal-title');
+      const modalPrice = document.getElementById('modal-price');
+      const modalSell = document.getElementById('modal-sell');
+      const modalClose = document.getElementById('modal-close');
+
+      function getInv(){ try{ return JSON.parse(localStorage.getItem(STORAGE_INV) || '[]'); }catch(_){ return []; } }
+      function setInv(arr){ try{ localStorage.setItem(STORAGE_INV, JSON.stringify(arr)); }catch(_){} }
+      function addToInventory(item){ const inv = getInv(); inv.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,8), key:item.key, name:item.name, price:item.price, src:item.src }); setInv(inv); }
+      function removeFromInventory(id){ const inv = getInv().filter(x=>x.id!==id); setInv(inv); }
+
+      function renderInventory(){
+        const inv = getInv();
+        invGrid.innerHTML = '';
+        if (inv.length === 0){ emptyInv.style.display = 'grid'; return; } else { emptyInv.style.display = 'none'; }
+        for (const it of inv){
+          const card = document.createElement('div');
+          card.className = 'inv-card';
+          card.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
+          card.addEventListener('click', ()=> openModal(it));
+          invGrid.appendChild(card);
+        }
+      }
+
+      function openModal(item){
+        modalImg.src = item.src; modalTitle.textContent = item.name; modalPrice.textContent = `Цена: ${item.price}`; modal.classList.add('show');
+        const sellHandler = () => { balance += item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); };
+        const closeHandler = () => closeModal();
+        modalSell.onclick = sellHandler; modalClose.onclick = closeHandler; modal.onclick = (e)=>{ if(e.target===modal) closeModal(); };
+      }
+      function closeModal(){ modal.classList.remove('show'); }
+
+      // инициализация
+      renderInventory();
 
       // стартовый таб
       switchTo('earn');
