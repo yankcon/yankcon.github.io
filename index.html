@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case + Инвентарь (v16)</title>
+  <title>Мини‑апп — Tap + Case + Инвентарь (v18)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -73,8 +73,8 @@
 
     /* кейсы — список с одним кейсом */
     .cases-list { width: 100%; display: grid; grid-template-columns: repeat(1, 220px); justify-content: center; gap: 14px; }
-    .case-card { display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12)); border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08); }
-    .case-card img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
+    .case-card { display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12)); border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08); cursor: pointer; }
+    .case-card img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
     .case-card .price { font-weight: 800; font-size: 16px; opacity:.85; }
     .case-card button { padding: 8px 12px; font-size: 12px; border-radius: 10px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 10px 24px rgba(124,58,237,.28); }
 
@@ -139,13 +139,13 @@
       <div id="cases-list" class="cases-list">
         <div class="case-card">
           <img src="case.png" alt="Кейс" onerror="this.style.opacity=.4;"/>
-          <div class="price">Цена открытия: 50</div>
-          <button class="pick" data-cost="50">Выбрать</button>
+          <div class="price">50 Taps</div>
         </div>
       </div>
       <!-- экран открытия -->
       <section id="case-open-view" class="case-open-view">
         <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
+        <button id="case-open" class="open-btn" disabled>Открыть</button>
         <div class="actions" id="case-actions">
           <button class="a-btn sell" id="sell-btn">Продать</button>
           <button class="a-btn keep" id="keep-btn">Сохранить</button>
@@ -186,7 +186,7 @@
     </div>
   </div>
 
-  <footer>v16</footer>
+  <footer>v18</footer>
 
   <script>
     (function () {
@@ -244,16 +244,15 @@
 
       let selectedCost = null; let spinning = false; let lastWin = null;
 
-      document.querySelectorAll('.pick').forEach(btn => btn.addEventListener('click', () => {
-        selectedCost = parseInt(btn.dataset.cost, 10); // всегда 50
-        // переход на экран открытия
+      const caseCard = document.querySelector('#cases-list .case-card');
+      caseCard.addEventListener('click', () => {
+        selectedCost = 50; // один кейс
         casesList.style.display = 'none';
         openView.classList.add('is-active');
         backBtn.style.display = 'inline-block';
         caseOpen.disabled = false; actions.classList.remove('is-active'); lastWin = null;
-        // скрыть трек до открытия
         track.innerHTML = ''; reel.classList.remove('visible'); track.style.transform = 'translateX(0)'; track.style.transition = 'none';
-      }));
+      });
 
       backBtn.addEventListener('click', () => { if (spinning) return; openView.classList.remove('is-active'); casesList.style.display = ''; backBtn.style.display = 'none'; selectedCost = null; caseOpen.disabled = true; track.innerHTML=''; reel.classList.remove('visible'); actions.classList.remove('is-active'); });
 
