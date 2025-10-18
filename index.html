@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — табы + тапалка (v10)</title>
+  <title>Мини‑апп — тап + кейсы (v11)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -56,9 +56,9 @@
     .view.is-active { display: grid; }
 
     .btn {
-      font-size: clamp(24px, 6vw, 44px);
+      font-size: clamp(22px, 5.2vw, 40px);
       letter-spacing: 1px; text-transform: uppercase;
-      padding: 26px 56px;
+      padding: 22px 46px;
       border: 2px solid #111; border-radius: 18px;
       color: #fff; cursor: pointer; outline: none; -webkit-appearance: none;
       box-shadow: 0 10px 26px rgba(0,0,0,.35), inset 0 -3px rgba(0,0,0,.25);
@@ -70,21 +70,35 @@
 
     .sticker { background: var(--glass); border: 1px dashed var(--glass-border); padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px); transform: rotate(-1.25deg); }
 
-    /* нижняя таб‑панель */
-    .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0));
-              display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;
+    /* нижняя таб‑панель (уменьшили кнопки) */
+    .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0));
+              display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: center;
               background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 25%, rgba(0,0,0,.55) 100%);
               backdrop-filter: blur(6px); border-top: 1px dashed var(--glass-border);
     }
-    .tab { height: 46px; border-radius: 12px; border: 1px dashed var(--glass-border); background: var(--glass); color: var(--fg);
-           font-size: 14px; letter-spacing: .4px; cursor: pointer; outline: none; -webkit-appearance: none; }
+    .tab { height: 36px; border-radius: 10px; border: 1px dashed var(--glass-border); background: var(--glass); color: var(--fg);
+           font-size: 12px; letter-spacing: .3px; cursor: pointer; outline: none; -webkit-appearance: none; }
     .tab.is-active { background: rgba(255,255,255,.14); border-style: solid; }
+
+    /* КЕЙСЫ (раздел 1) */
+    .cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .case {
+      display: grid; gap: 6px; justify-items: center; padding: 10px; border-radius: 12px;
+      background: var(--glass); border: 1px dashed var(--glass-border);
+    }
+    .case .price { font-weight: 700; }
+    .case button { padding: 8px 10px; font-size: 12px; border-radius: 8px; border: 1px solid #222; background: #111; color: #fff; cursor: pointer; }
+
+    .case-panel { display: grid; gap: 10px; justify-items: center; margin-top: 10px; }
+    .roller { font-size: 28px; font-weight: 800; letter-spacing: .5px; }
+    .open-btn { padding: 10px 16px; border-radius: 10px; border: 1px solid #222; background: #1f1f1f; color: #fff; cursor: pointer; }
+    .open-btn[disabled] { opacity: .5; cursor: not-allowed; }
 
     footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
   </style>
 </head>
 <body>
-  <!-- Валюта/баланс в правом верхнем углу с вашим изображением -->
+  <!-- Валюта/баланс в правом верхнем углу с вашей картинкой -->
   <div id="wallet" aria-live="polite" title="Ваш баланс">
     <img id="wallet-icon" src="hand.png" alt="клик" />
     <span id="balance">0</span>
@@ -94,32 +108,45 @@
   <div id="fx-layer"></div>
 
   <main id="views">
-    <!-- ТАБ 1: Заработать (тапалка) -->
+    <!-- ТАБ: Tap (тапалка) -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
-      <button id="hello-btn" class="btn" aria-label="привет">ПРИВЕТ</button>
-      <!-- подпись со счётчиком удалена: баланс виден сверху справа -->
+      <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
+      <!-- без подписи со счётчиком: баланс виден сверху справа -->
     </section>
 
-    <!-- ТАБЫ‑заглушки -->
+    <!-- ТАБ 1: Кейсы -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
-      <p class="sticker">Раздел 1 (скоро)</p>
+      <div class="sticker">Выбери сундук и нажми «Открыть». Стоимость списывается, выпадает случайная награда.</div>
+      <div class="cases">
+        <div class="case"><div class="price">50</div><button class="pick" data-cost="50">Выбрать</button></div>
+        <div class="case"><div class="price">100</div><button class="pick" data-cost="100">Выбрать</button></div>
+        <div class="case"><div class="price">150</div><button class="pick" data-cost="150">Выбрать</button></div>
+      </div>
+      <div class="case-panel">
+        <div id="case-info" class="sticker">Ничего не выбрано</div>
+        <div id="case-roll" class="roller">—</div>
+        <button id="case-open" class="open-btn" disabled>Открыть</button>
+      </div>
     </section>
+
+    <!-- ТАБ 2 -->
     <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
       <p class="sticker">Раздел 2 (скоро)</p>
     </section>
+    <!-- ТАБ 3 -->
     <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
       <p class="sticker">Раздел 3 (скоро)</p>
     </section>
   </main>
 
   <nav class="tabbar" role="tablist" aria-label="Навигация по разделам">
-    <button class="tab is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Заработать</button>
+    <button class="tab is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Tap</button>
     <button class="tab" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">1</button>
     <button class="tab" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">2</button>
     <button class="tab" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</button>
   </nav>
 
-  <footer>v10</footer>
+  <footer>v11</footer>
 
   <script>
     (function () {
@@ -127,16 +154,10 @@
       if (tg) { tg.ready(); tg.expand(); }
 
       // элементы
-      const btn = document.getElementById('hello-btn');
-      const fxLayer = document.getElementById('fx-layer');
+      const tapBtn   = document.getElementById('hello-btn');
+      const fxLayer  = document.getElementById('fx-layer');
       const resetBtn = document.getElementById('reset-btn');
-      const balanceEl = document.getElementById('balance');
-      const walletIcon = document.getElementById('wallet-icon');
-
-      walletIcon?.addEventListener('error', () => {
-        // если картинка не найдена, заменяем на эмодзи
-        walletIcon.replaceWith(Object.assign(document.createElement('span'), {textContent:'👉'}));
-      });
+      const balanceEl= document.getElementById('balance');
 
       // табы
       const tabs = Array.from(document.querySelectorAll('.tabbar .tab'));
@@ -152,69 +173,96 @@
       }
       tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
-      // состояние счётчика (валюта)
+      // состояние (баланс)
       const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
       const STORAGE_KEY = `tapper-count:${userId}`;
-      let count = 0;
-      try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) count = parseInt(saved, 10) || 0; } catch(_){}
+      let balance = 0;
+      try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){}
       renderBalance();
 
-      btn.addEventListener('click', (ev) => {
+      // TAP
+      tapBtn.addEventListener('click', (ev) => {
         spawnSparks(ev);
-        count += 1;
-        save();
-        renderBalance();
+        balance += 1;
+        save(); renderBalance();
       });
 
+      // RESET
       resetBtn.addEventListener('click', () => {
         if (tg && typeof tg.showPopup === 'function') {
-          tg.showPopup({
-            title: 'Обнуление',
-            message: 'Сбросить баланс кликов?',
-            buttons: [ { id:'yes', type:'destructive', text:'Сбросить' }, { type:'cancel' } ]
-          }, (id) => { if (id === 'yes') doReset(); });
-        } else {
-          if (window.confirm('Сбросить баланс кликов?')) doReset();
-        }
+          tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] },
+            (id)=>{ if(id==='yes') doReset(); });
+        } else if (confirm('Сбросить баланс?')) doReset();
       });
+      function doReset(){ balance = 0; save(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
 
-      function doReset(){
-        count = 0; save(); renderBalance();
-        if (tg && typeof tg.showAlert === 'function') tg.showAlert('Баланс: 0');
-      }
-      function save(){ try { localStorage.setItem(STORAGE_KEY, String(count)); } catch(_){}
-      }
-      function renderBalance(){ balanceEl.textContent = count; }
+      function save(){ try { localStorage.setItem(STORAGE_KEY, String(balance)); } catch(_){} }
+      function renderBalance(){ balanceEl.textContent = balance; }
 
-      // эффект искр
+      // ЭФФЕКТ ИСКР
       function spawnSparks(ev){
-        const rect = btn.getBoundingClientRect();
+        const rect = tapBtn.getBoundingClientRect();
         const cx = rect.left + rect.width/2;
         const cy = rect.top  + rect.height/2;
-        const color = getComputedStyle(btn).backgroundColor || '#fff';
+        const color = getComputedStyle(tapBtn).backgroundColor || '#fff';
         const n = 18;
         for (let i=0;i<n;i++){
-          const s = document.createElement('span');
-          s.className = 'spark';
+          const s = document.createElement('span'); s.className = 'spark';
           const angle = (Math.PI * 2) * (i/n) + (Math.random()*0.5);
           const dist = 40 + Math.random()*70;
-          const tx = Math.cos(angle) * dist + 'px';
-          const ty = Math.sin(angle) * dist + 'px';
-          const rot = (angle*180/Math.PI + (Math.random()*40-20)) + 'deg';
-          const dur = (500 + Math.random()*500) + 'ms';
-          s.style.left = (cx) + 'px';
-          s.style.top  = (cy) + 'px';
-          s.style.setProperty('--tx', tx);
-          s.style.setProperty('--ty', ty);
-          s.style.setProperty('--rot', rot);
-          s.style.setProperty('--dur', dur);
-          s.style.color = color;
-          fxLayer.appendChild(s);
+          s.style.left = cx + 'px'; s.style.top = cy + 'px';
+          s.style.setProperty('--tx', Math.cos(angle)*dist + 'px');
+          s.style.setProperty('--ty', Math.sin(angle)*dist + 'px');
+          s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20)) + 'deg');
+          s.style.setProperty('--dur', (500 + Math.random()*500) + 'ms');
+          s.style.color = color; fxLayer.appendChild(s);
           s.addEventListener('animationend', ()=> s.remove());
         }
       }
 
-      // стартуем на «Заработать»
+      // КЕЙСЫ
+      const picks = document.querySelectorAll('.pick');
+      const caseInfo = document.getElementById('case-info');
+      const caseRoll = document.getElementById('case-roll');
+      const caseOpen = document.getElementById('case-open');
+      let selectedCost = null;
+
+      picks.forEach(btn => btn.addEventListener('click', () => {
+        selectedCost = parseInt(btn.dataset.cost, 10);
+        const min = Math.max(1, Math.floor(selectedCost/4));
+        const max = selectedCost*2;
+        caseInfo.textContent = `Сундук за ${selectedCost}. Диапазон награды: ${min}–${max}.`;
+        caseRoll.textContent = '—';
+        caseOpen.disabled = false;
+      }));
+
+      caseOpen.addEventListener('click', () => {
+        if (!selectedCost) return;
+        if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
+
+        // списываем стоимость
+        balance -= selectedCost; save(); renderBalance();
+
+        // прокрутка
+        const min = Math.max(1, Math.floor(selectedCost/4));
+        const max = selectedCost*2;
+        const t0 = Date.now();
+        const duration = 1200; // мс
+        const iv = setInterval(() => {
+          caseRoll.textContent = rand(min, max);
+        }, 60);
+        setTimeout(() => {
+          clearInterval(iv);
+          const reward = rand(min, max);
+          caseRoll.textContent = reward;
+          balance += reward; save(); renderBalance();
+          tg?.showAlert?.(`+${reward}`);
+        }, duration);
+      });
+
+      function rand(min, max){ return Math.floor(Math.random()*(max-min+1)) + min; }
+
+      // стартуем на «Tap»
       switchTo('earn');
     })();
   </script>
