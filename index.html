@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ру">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — табы + тапалка (v8)</title>
+  <title>Мини‑апп — табы + тапалка (v9)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --gap: 18px;
-      --bg: #0a0a0a;   /* тёмный фон */
-      --fg: #eaeaea;   /* светлый текст */
-      --accent: #ff3b30; /* цвет кнопки */
+      --bg: #0a0a0a;          /* тёмный фон */
+      --fg: #eaeaea;          /* светлый текст */
+      --accent: #ff3b30;      /* цвет кнопки (красный) */
       --glass: rgba(255,255,255,.06);
       --glass-border: rgba(255,255,255,.25);
     }
@@ -26,6 +26,13 @@
         repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0px, rgba(255,255,255,.03) 1px, transparent 2px, transparent 3px);
       background-blend-mode: screen;
     }
+
+    /* глобальная «валюта» вверху справа */
+    #wallet { position: fixed; top: 10px; right: 10px; z-index: 20; display: inline-flex; align-items: center; gap: 8px;
+              padding: 6px 10px; font-size: 14px; background: var(--glass); border: 1px dashed var(--glass-border);
+              border-radius: 10px; backdrop-filter: blur(2px); }
+    #wallet svg { display: block; width: 22px; height: 22px; }
+    #balance { font-weight: 700; letter-spacing: .2px; }
 
     /* кнопка обнуления */
     #reset-btn {
@@ -45,8 +52,7 @@
 
     main { width: 100%; max-width: 720px; padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
 
-    .view { display: none; min-height: calc(100dvh - 140px); /* чтобы центрирование было стабильным */
-            justify-items: center; align-content: center; gap: var(--gap); }
+    .view { display: none; min-height: calc(100dvh - 140px); justify-items: center; align-content: center; gap: var(--gap); }
     .view.is-active { display: grid; }
 
     .btn {
@@ -63,7 +69,6 @@
     .btn:active { transform: translateY(1px) scale(0.995); }
 
     .sticker { background: var(--glass); border: 1px dashed var(--glass-border); padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px); transform: rotate(-1.25deg); }
-    .counter { font-size: clamp(18px, 4vw, 22px); opacity:.95; }
 
     /* нижняя таб‑панель */
     .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0));
@@ -79,6 +84,22 @@
   </style>
 </head>
 <body>
+  <!-- Валюта/баланс в правом верхнем углу -->
+  <div id="wallet" aria-live="polite" title="Ваш баланс">
+    <!-- Мини‑символ: палец нажимает красную кнопку -->
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <!-- красная кнопка -->
+      <circle cx="48" cy="16" r="10" fill="#ff3b30" stroke="#222" stroke-width="2"/>
+      <!-- палец/рука -->
+      <rect x="6" y="26" width="28" height="12" rx="6" fill="#f0d7b8" stroke="#222" stroke-width="2"/>
+      <rect x="28" y="20" width="10" height="22" rx="6" fill="#f0d7b8" stroke="#222" stroke-width="2"/>
+      <circle cx="40" cy="30" r="3" fill="#f0d7b8" stroke="#222" stroke-width="2"/>
+      <!-- эффект нажатия -->
+      <path d="M46 6 l4 -4 M48 28 l4 4 M58 16 l6 0 M32 16 l-6 0" stroke="#ff3b30" stroke-width="2"/>
+    </svg>
+    <span id="balance">0</span>
+  </div>
+
   <button id="reset-btn" aria-label="обнулить прогресс">обнуление</button>
   <div id="fx-layer"></div>
 
@@ -86,7 +107,7 @@
     <!-- ТАБ 1: Заработать (тапалка) -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
       <button id="hello-btn" class="btn" aria-label="привет">ПРИВЕТ</button>
-      <p class="sticker counter">Нажатий: <span id="count" aria-live="polite">0</span></p>
+      <!-- Убрали подпись «Нажатий: …» в этом разделе -->
     </section>
 
     <!-- ТАБЫ‑заглушки -->
@@ -108,7 +129,7 @@
     <button class="tab" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</button>
   </nav>
 
-  <footer>v8</footer>
+  <footer>v9</footer>
 
   <script>
     (function () {
@@ -117,9 +138,9 @@
 
       // элементы
       const btn = document.getElementById('hello-btn');
-      const countEl = document.getElementById('count');
       const fxLayer = document.getElementById('fx-layer');
       const resetBtn = document.getElementById('reset-btn');
+      const balanceEl = document.getElementById('balance');
 
       // табы
       const tabs = Array.from(document.querySelectorAll('.tabbar .tab'));
@@ -129,44 +150,44 @@
         '2': document.getElementById('tab-2'),
         '3': document.getElementById('tab-3')
       };
-
       function switchTo(name){
         tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
         Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name));
       }
       tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
-      // состояние счётчика (простой вариант без уровней)
+      // состояние счётчика (валюта)
       const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
       const STORAGE_KEY = `tapper-count:${userId}`;
       let count = 0;
       try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) count = parseInt(saved, 10) || 0; } catch(_){}
-      countEl.textContent = count;
+      renderBalance();
 
       btn.addEventListener('click', (ev) => {
         spawnSparks(ev);
         count += 1;
-        countEl.textContent = count;
-        try { localStorage.setItem(STORAGE_KEY, String(count)); } catch(_){}
+        save();
+        renderBalance();
       });
 
       resetBtn.addEventListener('click', () => {
         if (tg && typeof tg.showPopup === 'function') {
           tg.showPopup({
             title: 'Обнуление',
-            message: 'Сбросить прогресс счётчика?',
+            message: 'Сбросить баланс кликов?',
             buttons: [ { id:'yes', type:'destructive', text:'Сбросить' }, { type:'cancel' } ]
           }, (id) => { if (id === 'yes') doReset(); });
         } else {
-          if (window.confirm('Сбросить прогресс счётчика?')) doReset();
+          if (window.confirm('Сбросить баланс кликов?')) doReset();
         }
       });
 
       function doReset(){
-        count = 0; countEl.textContent = 0;
-        try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
-        if (tg && typeof tg.showAlert === 'function') tg.showAlert('Готово: 0');
+        count = 0; save(); renderBalance();
+        if (tg && typeof tg.showAlert === 'function') tg.showAlert('Баланс: 0');
       }
+      function save(){ try { localStorage.setItem(STORAGE_KEY, String(count)); } catch(_){} }
+      function renderBalance(){ balanceEl.textContent = count; }
 
       // эффект искр
       function spawnSparks(ev){
