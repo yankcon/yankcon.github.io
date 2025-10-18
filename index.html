@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — тап + кейсы (v11)</title>
+  <title>Мини‑апп — Tap + Case (v12)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -13,6 +13,7 @@
       --accent: #ff3b30;      /* цвет кнопки (красный) */
       --glass: rgba(255,255,255,.06);
       --glass-border: rgba(255,255,255,.25);
+      --nw: 72px;             /* ширина одной цифры в рулетке */
     }
     html, body { height: 100%; margin: 0; }
     * { -webkit-tap-highlight-color: transparent; }
@@ -70,7 +71,7 @@
 
     .sticker { background: var(--glass); border: 1px dashed var(--glass-border); padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px); transform: rotate(-1.25deg); }
 
-    /* нижняя таб‑панель (уменьшили кнопки) */
+    /* нижняя таб‑панель (компактная) */
     .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0));
               display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: center;
               background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 25%, rgba(0,0,0,.55) 100%);
@@ -80,7 +81,7 @@
            font-size: 12px; letter-spacing: .3px; cursor: pointer; outline: none; -webkit-appearance: none; }
     .tab.is-active { background: rgba(255,255,255,.14); border-style: solid; }
 
-    /* КЕЙСЫ (раздел 1) */
+    /* КЕЙСЫ (раздел Case) */
     .cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .case {
       display: grid; gap: 6px; justify-items: center; padding: 10px; border-radius: 12px;
@@ -90,9 +91,15 @@
     .case button { padding: 8px 10px; font-size: 12px; border-radius: 8px; border: 1px solid #222; background: #111; color: #fff; cursor: pointer; }
 
     .case-panel { display: grid; gap: 10px; justify-items: center; margin-top: 10px; }
-    .roller { font-size: 28px; font-weight: 800; letter-spacing: .5px; }
     .open-btn { padding: 10px 16px; border-radius: 10px; border: 1px solid #222; background: #1f1f1f; color: #fff; cursor: pointer; }
     .open-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+    /* РУЛЕТКА/РЕЕЛ */
+    .reel { position: relative; width: calc(var(--nw) * 3.6); height: 64px; overflow: hidden; border-radius: 12px; border: 1px dashed var(--glass-border); background: rgba(255,255,255,.04); }
+    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: rgba(255,255,255,.25); }
+    .reel-track { display: flex; align-items: center; height: 100%; will-change: transform; }
+    .n { flex: 0 0 var(--nw); width: var(--nw); text-align:center; font-size: 28px; font-weight: 900; color: var(--fg); opacity:.9; }
+    .n.win { color:#ffd400; text-shadow:0 0 12px rgba(255,212,0,.35); }
 
     footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
   </style>
@@ -111,12 +118,11 @@
     <!-- ТАБ: Tap (тапалка) -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
       <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
-      <!-- без подписи со счётчиком: баланс виден сверху справа -->
     </section>
 
-    <!-- ТАБ 1: Кейсы -->
+    <!-- ТАБ: Case -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
-      <div class="sticker">Выбери сундук и нажми «Открыть». Стоимость списывается, выпадает случайная награда.</div>
+      <div class="sticker">Выбери сундук и нажми «Открыть». Стоимость списывается, награда случайна (цена/4 … цена×2).</div>
       <div class="cases">
         <div class="case"><div class="price">50</div><button class="pick" data-cost="50">Выбрать</button></div>
         <div class="case"><div class="price">100</div><button class="pick" data-cost="100">Выбрать</button></div>
@@ -124,7 +130,9 @@
       </div>
       <div class="case-panel">
         <div id="case-info" class="sticker">Ничего не выбрано</div>
-        <div id="case-roll" class="roller">—</div>
+        <div class="reel" id="reel">
+          <div class="reel-track" id="reel-track"></div>
+        </div>
         <button id="case-open" class="open-btn" disabled>Открыть</button>
       </div>
     </section>
@@ -141,12 +149,12 @@
 
   <nav class="tabbar" role="tablist" aria-label="Навигация по разделам">
     <button class="tab is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Tap</button>
-    <button class="tab" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">1</button>
+    <button class="tab" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">Case</button>
     <button class="tab" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">2</button>
     <button class="tab" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</button>
   </nav>
 
-  <footer>v11</footer>
+  <footer>v12</footer>
 
   <script>
     (function () {
@@ -220,11 +228,12 @@
         }
       }
 
-      // КЕЙСЫ
+      // === КЕЙСЫ: логика и анимация рулетки ===
       const picks = document.querySelectorAll('.pick');
       const caseInfo = document.getElementById('case-info');
-      const caseRoll = document.getElementById('case-roll');
       const caseOpen = document.getElementById('case-open');
+      const reel = document.getElementById('reel');
+      const track = document.getElementById('reel-track');
       let selectedCost = null;
 
       picks.forEach(btn => btn.addEventListener('click', () => {
@@ -232,7 +241,7 @@
         const min = Math.max(1, Math.floor(selectedCost/4));
         const max = selectedCost*2;
         caseInfo.textContent = `Сундук за ${selectedCost}. Диапазон награды: ${min}–${max}.`;
-        caseRoll.textContent = '—';
+        buildTrack(min, max); // подготовим список чисел
         caseOpen.disabled = false;
       }));
 
@@ -240,25 +249,67 @@
         if (!selectedCost) return;
         if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
 
-        // списываем стоимость
+        // списываем стоимость сразу
         balance -= selectedCost; save(); renderBalance();
 
-        // прокрутка
         const min = Math.max(1, Math.floor(selectedCost/4));
         const max = selectedCost*2;
-        const t0 = Date.now();
-        const duration = 1200; // мс
-        const iv = setInterval(() => {
-          caseRoll.textContent = rand(min, max);
-        }, 60);
-        setTimeout(() => {
-          clearInterval(iv);
-          const reward = rand(min, max);
-          caseRoll.textContent = reward;
+        const reward = rand(min, max);
+        spinTo(reward, {min, max});
+      });
+
+      function buildTrack(min, max){
+        track.innerHTML = '';
+        const nums = [];
+        for (let i=min; i<=max; i++) nums.push(i);
+        // Длинная дорожка: повторим 3 раза, чтобы «прокрутка» была долгой
+        const long = nums.concat(nums, nums);
+        for (const n of long){
+          const el = document.createElement('div');
+          el.className = 'n';
+          el.textContent = n;
+          track.appendChild(el);
+        }
+        track.style.transform = 'translateX(0)';
+        track.style.transition = 'none';
+      }
+
+      function spinTo(value, {min, max}){
+        // снять выделения
+        track.querySelectorAll('.n').forEach(el => el.classList.remove('win'));
+
+        // если дорожка не собрана — соберём
+        if (!track.firstElementChild) buildTrack(min, max);
+
+        const items = Array.from(track.children);
+        const itemW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nw')) || 72;
+        const containerW = reel.clientWidth;
+        const centerOffset = (containerW - itemW)/2; // хотим, чтобы число оказалось по центру
+
+        // найдём индекс value в ТРЕТЬЕМ повторе (чтобы прокрутка была длиннее)
+        const span = max - min + 1;
+        const baseIndex = (value - min);       // индекс в одном повторе
+        const targetIndex = span*2 + baseIndex; // третий блок
+
+        const targetOffset = targetIndex * itemW - centerOffset;
+
+        // стартовое положение: 0; запускаем плавное замедление к цели
+        requestAnimationFrame(() => {
+          track.style.transition = 'transform 1800ms cubic-bezier(0.06, 0.8, 0.1, 1)';
+          track.style.transform = `translateX(${-targetOffset}px)`;
+        });
+
+        // после завершения — начисляем награду и подсветим выигрышное число
+        const onDone = () => {
+          const winEl = items[targetIndex];
+          winEl?.classList.add('win');
+          const reward = value;
           balance += reward; save(); renderBalance();
           tg?.showAlert?.(`+${reward}`);
-        }, duration);
-      });
+          track.removeEventListener('transitionend', onDone);
+        };
+        track.addEventListener('transitionend', onDone);
+      }
 
       function rand(min, max){ return Math.floor(Math.random()*(max-min+1)) + min; }
 
