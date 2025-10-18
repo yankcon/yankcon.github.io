@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case + Инвентарь (v18)</title>
+  <title>Мини‑апп — Tap + Case + Инвентарь (v19)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -18,6 +18,7 @@
       --glass-border: rgba(255,255,255,.22);
       --card-w: 156px;         /* ширина карточки в рулетке с фото */
       --seg-h: 54px;           /* высота нижней панели‑сегментов */
+      --pill: linear-gradient(135deg, #ffd85a, #ffb300);
     }
     html, body { height: 100%; margin: 0; }
     * { -webkit-tap-highlight-color: transparent; }
@@ -40,9 +41,9 @@
     /* кнопки сверху */
     #reset-btn, #back-cases {
       position: fixed; left: 10px; z-index: 30;
-      padding: 6px 10px; font-size: 12px; letter-spacing: .3px;
+      padding: 8px 12px; font-size: 12px; letter-spacing: .3px;
       color: var(--fg); background: var(--glass);
-      border: 1px solid var(--glass-border); border-radius: 10px;
+      border: 1px solid var(--glass-border); border-radius: 12px;
       backdrop-filter: blur(4px); cursor: pointer; outline: none; -webkit-appearance: none;
       transition: opacity .2s ease, transform .05s ease;
     }
@@ -60,8 +61,19 @@
     .view.is-active { display: grid; }
 
     /* TAP */
+    .tap-wrap { position: relative; }
+    .tap-cat { position: absolute; left: 50%; transform: translateX(-50%) translateY(-10px); bottom: 100%; height: 90px; pointer-events: none; }
+    .tap-cat img { position: absolute; left: 50%; transform: translateX(-50%); top: 0; height: 90px; transition: opacity .08s ease; }
+    #cat-a { opacity: 1; }
+    #cat-b { opacity: 0; }
+
     .btn { font-size: clamp(22px, 5vw, 40px); letter-spacing: 1px; text-transform: uppercase; padding: 22px 46px; border: 0; border-radius: 18px; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), #ff6a55); box-shadow: 0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25); transition: transform .06s ease, filter .2s ease; }
     .btn:active { transform: translateY(1px) scale(0.995); }
+
+    /* Кнопки общего стиля */
+    .btn-primary { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
+    .btn-secondary { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .btn-primary[disabled] { opacity: .5; cursor: not-allowed; }
 
     /* НИЖНЕЕ МЕНЮ: сегменты до краёв */
     .segbar { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; height: calc(var(--seg-h) + env(safe-area-inset-bottom, 0)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: stretch; background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.75) 100%); border-top: 1px solid var(--glass-border); }
@@ -75,34 +87,53 @@
     .cases-list { width: 100%; display: grid; grid-template-columns: repeat(1, 220px); justify-content: center; gap: 14px; }
     .case-card { display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12)); border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08); cursor: pointer; }
     .case-card img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
+    .case-title { font-weight: 800; }
     .case-card .price { font-weight: 800; font-size: 16px; opacity:.85; }
-    .case-card button { padding: 8px 12px; font-size: 12px; border-radius: 10px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 10px 24px rgba(124,58,237,.28); }
 
     /* экран открытия кейса */
     .case-open-view { width: 100%; display: none; gap: 16px; justify-items: center; }
     .case-open-view.is-active { display: grid; }
-    .chosen { font-size: 13px; opacity: .8; }
+
+    /* превью кейса (исчезает при старте) */
+    .case-preview { width: 220px; height: 220px; border-radius: 14px; overflow: hidden; opacity: 1; transition: opacity 400ms ease; }
+    .case-preview.hide { opacity: 0; }
+    .case-preview img { width: 100%; height: 100%; object-fit: cover; }
 
     /* РУЛЕТКА С ФОТО */
-    .reel { position: relative; width: 100%; max-width: 900px; height: 168px; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.06); transition: opacity 500ms ease; }
+    .reel { position: relative; width: 100%; max-width: 900px; height: 200px; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.06); transition: opacity 500ms ease; }
     .reel.visible { opacity: 1; }
     .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: linear-gradient(180deg, transparent, rgba(255,255,255,.75), transparent); }
     .reel-track { display: flex; align-items: center; height: 100%; will-change: transform; transform: translateZ(0); }
     .card { flex: 0 0 var(--card-w); width: var(--card-w); height: 100%; display: grid; grid-template-rows: 1fr auto; align-items: stretch; justify-items: center; gap: 6px; }
-    .card img { width: calc(var(--card-w) - 16px); height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); margin-top: 10px; }
+    .card img { width: calc(var(--card-w) - 6px); height: 160px; object-fit: contain; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
     .card .label { font-size: 13px; opacity:.75; margin-bottom: 8px; }
     .card.win .label { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); opacity:1; }
 
+    /* Кнопка «Открыть» в общем стиле */
+    .open-btn { composes: btn-primary; }
+    .open-btn { padding: 14px 22px; border-radius: 14px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
+
     .actions { display:none; gap:10px; }
     .actions.is-active { display:grid; grid-auto-flow: column; }
-    .a-btn { padding: 10px 14px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; }
+    .a-btn { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; }
     .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
     .keep { background: linear-gradient(135deg, #22c55e, #16a34a); }
+
+    /* Плашка цены выигрыша */
+    .win-price { display:none; padding: 8px 12px; border-radius: 999px; background: var(--pill); color: #3b2c00; font-weight: 800; box-shadow: 0 8px 20px rgba(255,184,0,.25); }
+    .win-price.show { display:inline-block; }
+
+    /* Лист с перечнем всех предметов */
+    .pricelist { width: 100%; max-width: 900px; display: grid; grid-auto-flow: column; grid-auto-columns: 160px; gap: 10px; overflow-x: auto; padding: 4px; }
+    .pricelist .mini { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
+    .pricelist .mini img { width: 100%; height: 90px; object-fit: contain; background: rgba(0,0,0,.15); border:1px solid var(--glass-border); border-radius: 8px; }
+    .mini .t { font-size: 12px; opacity:.9; text-align:center; }
+    .mini .p { font-weight: 800; }
 
     /* Инвентарь */
     .inv-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .inv-card { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
-    .inv-card img { width: 100%; height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); }
+    .inv-card img { width: 100%; height: 110px; object-fit: contain; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
     .inv-card .title { font-size: 12px; opacity:.85 }
 
     /* Модалка */
@@ -110,7 +141,7 @@
     .modal.show { display: grid; place-items: center; }
     .modal::before { content:""; position: absolute; inset:0; background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
     .modal-card { position: relative; z-index:1; width: min(92vw, 420px); background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--glass-border); border-radius: 14px; padding: 14px; display:grid; gap:10px; }
-    .modal-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); }
+    .modal-card img { width: 100%; height: 220px; object-fit: contain; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
     .modal-title { font-weight: 800; }
     .modal-actions { display: grid; grid-auto-flow: column; gap: 10px; }
     .modal .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
@@ -130,26 +161,36 @@
   <main id="views">
     <!-- TAB: Tap -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
-      <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
+      <div class="tap-wrap">
+        <div class="tap-cat">
+          <img id="cat-a" src="cat1.png" alt="cat a">
+          <img id="cat-b" src="cat2.png" alt="cat b">
+        </div>
+        <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
+      </div>
     </section>
 
     <!-- TAB: Case -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
       <!-- один кейс стоимостью 50, с картинкой -->
       <div id="cases-list" class="cases-list">
-        <div class="case-card">
-          <img src="case.png" alt="Кейс" onerror="this.style.opacity=.4;"/>
+        <div class="case-card" id="case-card">
+          <div class="case-title">Сезонный Рома</div>
+          <img id="case-img" src="case.png" alt="Кейс">
           <div class="price">50 Taps</div>
         </div>
       </div>
       <!-- экран открытия -->
       <section id="case-open-view" class="case-open-view">
+        <div id="case-preview" class="case-preview"><img src="case.png" alt="Кейс"></div>
         <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
-        <button id="case-open" class="open-btn" disabled>Открыть</button>
+        <button id="case-open" class="btn-primary">Открыть</button>
+        <div class="win-price" id="win-price"></div>
         <div class="actions" id="case-actions">
           <button class="a-btn sell" id="sell-btn">Продать</button>
           <button class="a-btn keep" id="keep-btn">Сохранить</button>
         </div>
+        <div class="pricelist" id="pricelist"></div>
       </section>
     </section>
 
@@ -186,7 +227,7 @@
     </div>
   </div>
 
-  <footer>v18</footer>
+  <footer>v19</footer>
 
   <script>
     (function () {
@@ -203,8 +244,14 @@
       const tabs = Array.from(document.querySelectorAll('.segbar .seg'));
       const views = { earn: document.getElementById('tab-earn'), '1': document.getElementById('tab-1'), '2': document.getElementById('tab-2'), '3': document.getElementById('tab-3') };
       function switchTo(name){
+        // визуальная активация
         tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
         Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name));
+        // 2) Back-кнопка показывается только на экране открытия кейса
+        ensureBackVisibility();
+        // 3) Сбросить состояние остальных разделов
+        if (name !== '1') resetCaseView();
+        if (name !== '2') closeModal(); // инвентарь — закрыть модалку
       }
       tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
@@ -215,7 +262,20 @@
       let balance = 0; try { const saved = localStorage.getItem(STORAGE_BAL); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){ }
       renderBalance();
 
-      tapBtn.addEventListener('click', (ev) => { spawnSparks(ev); balance += 1; saveBal(); renderBalance(); });
+      // TAP + котики
+      const catA = document.getElementById('cat-a');
+      const catB = document.getElementById('cat-b');
+      attachFallback(catA, ['cat1.png','cat_1.png','catA.png']);
+      attachFallback(catB, ['cat2.png','cat_2.png','catB.png']);
+      let catFlip = false;
+
+      tapBtn.addEventListener('click', (ev) => { 
+        spawnSparks(ev); 
+        balance += 1; saveBal(); renderBalance();
+        catFlip = !catFlip; // анимация котика
+        catA.style.opacity = catFlip ? 0 : 1;
+        catB.style.opacity = catFlip ? 1 : 0;
+      });
 
       resetBtn.addEventListener('click', () => { if (tg && typeof tg.showPopup === 'function') { tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] }, (id)=>{ if(id==='yes') doReset(); }); } else if (confirm('Сбросить баланс?')) doReset(); });
       function doReset(){ balance = 0; saveBal(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
@@ -226,11 +286,14 @@
 
       // === КЕЙСЫ ===
       const casesList = document.getElementById('cases-list');
+      const caseCard  = document.getElementById('case-card');
       const openView  = document.getElementById('case-open-view');
+      const casePreview = document.getElementById('case-preview');
       const caseOpen  = document.getElementById('case-open');
       const actions   = document.getElementById('case-actions');
       const sellBtn   = document.getElementById('sell-btn');
       const keepBtn   = document.getElementById('keep-btn');
+      const winPriceEl= document.getElementById('win-price');
 
       const reel      = document.getElementById('reel');
       const track     = document.getElementById('reel-track');
@@ -242,24 +305,55 @@
         { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
       ];
 
+      // прайс‑лист внизу экрана кейса
+      const pricelist = document.getElementById('pricelist');
+      function renderPriceList(){
+        pricelist.innerHTML = '';
+        for(const it of ITEMS){
+          const box = document.createElement('div');
+          box.className = 'mini';
+          const img = document.createElement('img'); img.src = it.src; img.alt = it.name; attachFallback(img,[it.src,it.src.replace('.jpg','.jpeg'),it.src.replace('.jpg','.JPG'),it.src.replace('.jpg','.png')]);
+          const t = document.createElement('div'); t.className='t'; t.textContent = it.name;
+          const p = document.createElement('div'); p.className='p'; p.textContent = it.price + ' Taps';
+          box.appendChild(img); box.appendChild(t); box.appendChild(p); pricelist.appendChild(box);
+        }
+      }
+      renderPriceList();
+
       let selectedCost = null; let spinning = false; let lastWin = null;
 
-      const caseCard = document.querySelector('#cases-list .case-card');
+      // вход в кейс по клику на карточку
       caseCard.addEventListener('click', () => {
         selectedCost = 50; // один кейс
         casesList.style.display = 'none';
         openView.classList.add('is-active');
-        backBtn.style.display = 'inline-block';
-        caseOpen.disabled = false; actions.classList.remove('is-active'); lastWin = null;
-        track.innerHTML = ''; reel.classList.remove('visible'); track.style.transform = 'translateX(0)'; track.style.transition = 'none';
+        // показать back только тут
+        ensureBackVisibility();
+        caseOpen.disabled = false; actions.classList.remove('is-active'); lastWin = null; winPriceEl.classList.remove('show');
+        // скрыть трек до открытия, показать превью кейса
+        track.innerHTML = ''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+        track.style.transform = 'translateX(0)'; track.style.transition = 'none';
       });
 
-      backBtn.addEventListener('click', () => { if (spinning) return; openView.classList.remove('is-active'); casesList.style.display = ''; backBtn.style.display = 'none'; selectedCost = null; caseOpen.disabled = true; track.innerHTML=''; reel.classList.remove('visible'); actions.classList.remove('is-active'); });
+      // Back из кейса
+      backBtn.addEventListener('click', () => { if (spinning) return; resetCaseView(); });
+
+      function resetCaseView(){
+        openView.classList.remove('is-active');
+        casesList.style.display = '';
+        backBtn.style.display = 'none';
+        selectedCost = null; caseOpen.disabled = true; actions.classList.remove('is-active'); lastWin = null; winPriceEl.classList.remove('show');
+        track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+      }
+
+      function ensureBackVisibility(){
+        backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none';
+      }
 
       caseOpen.addEventListener('click', () => {
         if (!selectedCost || spinning) return;
         if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
-        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active');
+        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active'); winPriceEl.classList.remove('show');
         balance -= selectedCost; saveBal(); renderBalance();
 
         // Случайный выигрыш среди трёх фото
@@ -268,12 +362,14 @@
 
         buildPhotoTrackWithWin(rewardItem);
 
-        // Показать дорожку (fade-in 0.5с) и крутить 2.5с
-        reel.classList.add('visible');
+        // Превью плавно исчезает, рулетка проявляется
+        casePreview.classList.add('hide');
+        setTimeout(()=>{ reel.classList.add('visible'); }, 100);
+
         requestAnimationFrame(() => {
           // измеряем реальную ширину карточки
           const firstCard = track.querySelector('.card');
-          const itemW = firstCard ? firstCard.getBoundingClientRect().width : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 156;
+          const itemW = firstCard ? firstCard.getBoundingClientRect().width : 156;
           const centerOffset = (reel.clientWidth - itemW)/2;
           const span = ITEMS.length; // 3
           const centerIndex = Math.floor(span/2); // 1
@@ -281,16 +377,15 @@
           const targetIndex = (repeatN-1)*span + centerIndex; // фиксированный путь
           const targetOffset = targetIndex * itemW - centerOffset;
 
-          // сброс и запуск
-          track.style.transition = 'none';
-          track.style.transform = 'translateX(0px)';
-          void track.offsetWidth;
+          // сброс и запуск с точной длительностью 2500ms
+          track.style.transition = 'none'; track.style.transform = 'translateX(0px)'; void track.offsetWidth;
           requestAnimationFrame(() => {
             track.style.transition = 'transform 2500ms cubic-bezier(0.06, 0.8, 0.1, 1)';
             track.style.transform = `translateX(${-targetOffset}px)`;
             track.addEventListener('transitionend', () => {
               highlightWin(targetIndex);
               spinning = false; caseOpen.disabled = false; actions.classList.add('is-active');
+              winPriceEl.textContent = lastWin.price + ' Taps'; winPriceEl.classList.add('show');
             }, { once:true });
           });
         });
@@ -302,15 +397,14 @@
         for(let r=0; r<repeatN; r++){
           const shuffled = shuffle(ITEMS.slice());
           if (r === repeatN-1){
-            // поставим выигрыш по центру последнего блока
             const idx = shuffled.findIndex(i => i.key === winItem.key);
             if (idx !== -1){ const t = shuffled[centerIndex]; shuffled[centerIndex] = shuffled[idx]; shuffled[idx] = t; }
           }
           for (const it of shuffled){
-            const el = document.createElement('div');
-            el.className = 'card';
-            el.innerHTML = `<img src="${it.src}" alt="${it.name}" onerror="this.style.opacity=.4;"><div class="label">${it.name}</div>`;
-            track.appendChild(el);
+            const el = document.createElement('div'); el.className = 'card';
+            const img = document.createElement('img'); img.alt = it.name; img.src = it.src; attachFallback(img, [it.src, it.src.replace('.jpg','.jpeg'), it.src.replace('.jpg','.JPG'), it.src.replace('.jpg','.png')]);
+            const lab = document.createElement('div'); lab.className='label'; lab.textContent = it.name;
+            el.appendChild(img); el.appendChild(lab); track.appendChild(el);
           }
         }
       }
@@ -319,10 +413,6 @@
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
       // Действия после выигрыша: Продать / Сохранить
-      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
-      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
-
-      // === Инвентарь ===
       const invGrid = document.getElementById('inv-grid');
       const emptyInv = document.getElementById('empty-inv');
       const modal = document.getElementById('modal');
@@ -332,31 +422,25 @@
       const modalSell = document.getElementById('modal-sell');
       const modalClose = document.getElementById('modal-close');
 
+      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); winPriceEl.classList.remove('show'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); winPriceEl.classList.remove('show'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
+
       function getInv(){ try{ return JSON.parse(localStorage.getItem(STORAGE_INV) || '[]'); }catch(_){ return []; } }
       function setInv(arr){ try{ localStorage.setItem(STORAGE_INV, JSON.stringify(arr)); }catch(_){} }
       function addToInventory(item){ const inv = getInv(); inv.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,8), key:item.key, name:item.name, price:item.price, src:item.src }); setInv(inv); }
       function removeFromInventory(id){ const inv = getInv().filter(x=>x.id!==id); setInv(inv); }
 
       function renderInventory(){
-        const inv = getInv();
-        invGrid.innerHTML = '';
+        const inv = getInv(); invGrid.innerHTML = '';
         if (inv.length === 0){ emptyInv.style.display = 'grid'; return; } else { emptyInv.style.display = 'none'; }
-        for (const it of inv){
-          const card = document.createElement('div');
-          card.className = 'inv-card';
-          card.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
-          card.addEventListener('click', ()=> openModal(it));
-          invGrid.appendChild(card);
-        }
+        for (const it of inv){ const card = document.createElement('div'); card.className = 'inv-card'; card.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`; card.querySelector('img').addEventListener('error', (e)=> e.target.style.opacity=.4); card.addEventListener('click', ()=> openModal(it)); invGrid.appendChild(card); }
       }
 
-      function openModal(item){
-        modalImg.src = item.src; modalTitle.textContent = item.name; modalPrice.textContent = `Цена: ${item.price}`; modal.classList.add('show');
-        const sellHandler = () => { balance += item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); };
-        const closeHandler = () => closeModal();
-        modalSell.onclick = sellHandler; modalClose.onclick = closeHandler; modal.onclick = (e)=>{ if(e.target===modal) closeModal(); };
-      }
+      function openModal(item){ modalImg.src = item.src; modalTitle.textContent = item.name; modalPrice.textContent = `Цена: ${item.price}`; modal.classList.add('show'); const sellHandler = () => { balance += item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); }; const closeHandler = () => closeModal(); modalSell.onclick = sellHandler; modalClose.onclick = closeHandler; modal.onclick = (e)=>{ if(e.target===modal) closeModal(); }; }
       function closeModal(){ modal.classList.remove('show'); }
+
+      // утилита: подмена имён файла: .jpg → .jpeg → .JPG → .png, и для котиков/кейса
+      function attachFallback(img, variants){ let i = 0; img.addEventListener('error', () => { if (++i < variants.length) img.src = variants[i]; else img.style.opacity = .4; }); }
 
       // инициализация
       renderInventory();
