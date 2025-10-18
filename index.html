@@ -27,13 +27,13 @@ box-shadow: 0 8px 24px rgba(0,0,0,.15);
 cursor: pointer;
 }
 button:active { transform: translateY(1px); }
-.counter { font-size: 18px; opacity: .8; }
+.counter { font-size: clamp(18px, 4vw, 22px); opacity: .9; margin-top: 4px; }
 </style>
 </head>
 <body>
 <main>
 <button id="hello-btn" aria-label="привет">привет</button>
-<p class="counter">Нажатий: <span id="count">0</span></p>
+<p class="counter" id="counter">Нажатий: <span id="count" aria-live="polite">0</span></p>
 </main>
 <script>
 (function () {
@@ -41,13 +41,25 @@ const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
 if (tg) { tg.ready(); tg.expand(); }
 
 
-const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id
-? tg.initDataUnsafe.user.id
-: 'anon';
+// Сохраняем счётчик отдельно для каждого пользователя Telegram (если user.id доступен)
+const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
 const STORAGE_KEY = `hello-counter:${userId}`;
 
 
 const btn = document.getElementById('hello-btn');
+
+
+// На всякий случай создадим блок счётчика, если его нет в разметке
+let counterEl = document.getElementById('counter');
+if (!counterEl) {
+counterEl = document.createElement('p');
+counterEl.id = 'counter';
+counterEl.className = 'counter';
+counterEl.innerHTML = 'Нажатий: <span id="count" aria-live="polite">0</span>';
+btn.insertAdjacentElement('afterend', counterEl);
+}
+
+
 const countEl = document.getElementById('count');
 
 
@@ -55,14 +67,14 @@ let count = 0;
 try {
 const saved = localStorage.getItem(STORAGE_KEY);
 if (saved !== null) count = parseInt(saved, 10) || 0;
-} catch (e) { /* localStorage может быть недоступен в приватном режиме */ }
+} catch (_) { /* localStorage может быть недоступен */ }
 countEl.textContent = count;
 
 
 btn.addEventListener('click', () => {
 count += 1;
 countEl.textContent = count;
-try { localStorage.setItem(STORAGE_KEY, String(count)); } catch (e) {}
+try { localStorage.setItem(STORAGE_KEY, String(count)); } catch (_) {}
 });
 })();
 </script>
