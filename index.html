@@ -3,103 +3,108 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case (v12)</title>
+  <title>Мини‑апп — Tap + Case (v13)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --gap: 18px;
-      --bg: #0a0a0a;          /* тёмный фон */
-      --fg: #eaeaea;          /* светлый текст */
-      --accent: #ff3b30;      /* цвет кнопки (красный) */
+      --bg1: #0f0f16;        /* фон как на кейс‑сайтах */
+      --bg2: #15182b;
+      --fg: #eaeaea;         /* светлый текст */
+      --accent: #ff3b30;     /* цвет кнопки TAP (красный) */
+      --brand1: #7c3aed;     /* фиолетовый градиент */
+      --brand2: #ff3b81;     /* розовый градиент */
       --glass: rgba(255,255,255,.06);
-      --glass-border: rgba(255,255,255,.25);
-      --nw: 72px;             /* ширина одной цифры в рулетке */
+      --glass-border: rgba(255,255,255,.22);
+      --nw: 88px;            /* ширина одной «карточки числа» в рулетке */
     }
     html, body { height: 100%; margin: 0; }
     * { -webkit-tap-highlight-color: transparent; }
     body {
-      display: grid; place-items: center; background: var(--bg); color: var(--fg);
+      display: grid; place-items: center; color: var(--fg);
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       user-select: none; overflow: hidden; position: relative;
-      background-image:
-        radial-gradient(1200px 600px at 50% 20%, rgba(255,255,255,.04), transparent 60%),
-        radial-gradient(800px 800px at 80% 120%, rgba(255,255,255,.035), transparent 70%),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0px, rgba(255,255,255,.03) 1px, transparent 2px, transparent 3px);
-      background-blend-mode: screen;
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
+                  radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
     }
 
     /* глобальная «валюта» вверху справа */
-    #wallet { position: fixed; top: 10px; right: 10px; z-index: 20; display: inline-flex; align-items: center; gap: 8px;
-              padding: 6px 10px; font-size: 14px; background: var(--glass); border: 1px dashed var(--glass-border);
-              border-radius: 10px; backdrop-filter: blur(2px); }
+    #wallet { position: fixed; top: 10px; right: 10px; z-index: 30; display: inline-flex; align-items: center; gap: 8px;
+              padding: 8px 12px; font-size: 14px; background: var(--glass); border: 1px solid var(--glass-border);
+              border-radius: 12px; backdrop-filter: blur(4px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
     #wallet img { display: block; width: 22px; height: 22px; object-fit: contain; }
-    #balance { font-weight: 700; letter-spacing: .2px; }
+    #balance { font-weight: 800; letter-spacing: .2px; }
 
-    /* кнопка обнуления */
-    #reset-btn {
-      position: fixed; top: 10px; left: 10px; z-index: 20;
-      padding: 6px 10px; font-size: 12px; letter-spacing: .3px; text-transform: lowercase;
+    /* кнопка обнуления + назад */
+    #reset-btn, #back-cases {
+      position: fixed; left: 10px; z-index: 30;
+      padding: 6px 10px; font-size: 12px; letter-spacing: .3px;
       color: var(--fg); background: var(--glass);
-      border: 1px dashed var(--glass-border); border-radius: 10px;
-      backdrop-filter: blur(2px); cursor: pointer; outline: none; -webkit-appearance: none;
+      border: 1px solid var(--glass-border); border-radius: 10px;
+      backdrop-filter: blur(4px); cursor: pointer; outline: none; -webkit-appearance: none;
       transition: opacity .2s ease, transform .05s ease;
     }
-    #reset-btn:focus, #reset-btn:focus-visible { outline: none; }
-    #reset-btn:hover { opacity: .95; }
-    #reset-btn:active { transform: translateY(1px); }
+    #reset-btn { top: 10px; }
+    #back-cases { top: 44px; display: none; }
+    #reset-btn:active, #back-cases:active { transform: translateY(1px); }
 
     /* слой для искр */
     #fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
 
-    main { width: 100%; max-width: 720px; padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
+    main { width: 100%; max-width: 920px; padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
 
     .view { display: none; min-height: calc(100dvh - 140px); justify-items: center; align-content: center; gap: var(--gap); }
     .view.is-active { display: grid; }
 
+    /* TAP‑кнопка */
     .btn {
-      font-size: clamp(22px, 5.2vw, 40px);
+      font-size: clamp(22px, 5vw, 40px);
       letter-spacing: 1px; text-transform: uppercase;
-      padding: 22px 46px;
-      border: 2px solid #111; border-radius: 18px;
-      color: #fff; cursor: pointer; outline: none; -webkit-appearance: none;
-      box-shadow: 0 10px 26px rgba(0,0,0,.35), inset 0 -3px rgba(0,0,0,.25);
-      transition: transform .06s ease, filter .2s ease, background .2s ease;
-      position: relative; background: var(--accent);
+      padding: 22px 46px; border: 0; border-radius: 18px; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #ff6a55);
+      box-shadow: 0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);
+      transition: transform .06s ease, filter .2s ease;
     }
-    .btn:focus, .btn:focus-visible { outline: none; }
     .btn:active { transform: translateY(1px) scale(0.995); }
 
-    .sticker { background: var(--glass); border: 1px dashed var(--glass-border); padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px); transform: rotate(-1.25deg); }
-
     /* нижняя таб‑панель (компактная) */
-    .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0));
+    .tabbar { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0));
               display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: center;
               background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 25%, rgba(0,0,0,.55) 100%);
-              backdrop-filter: blur(6px); border-top: 1px dashed var(--glass-border);
+              backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border);
     }
-    .tab { height: 36px; border-radius: 10px; border: 1px dashed var(--glass-border); background: var(--glass); color: var(--fg);
-           font-size: 12px; letter-spacing: .3px; cursor: pointer; outline: none; -webkit-appearance: none; }
+    .tab { height: 36px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--fg);
+           font-size: 12px; letter-spacing: .3px; cursor: pointer; }
     .tab.is-active { background: rgba(255,255,255,.14); border-style: solid; }
 
-    /* КЕЙСЫ (раздел Case) */
-    .cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .case {
-      display: grid; gap: 6px; justify-items: center; padding: 10px; border-radius: 12px;
-      background: var(--glass); border: 1px dashed var(--glass-border);
+    /* Карточки кейсов (список) */
+    .cases-list { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .case-card {
+      display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12));
+      border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08);
     }
-    .case .price { font-weight: 700; }
-    .case button { padding: 8px 10px; font-size: 12px; border-radius: 8px; border: 1px solid #222; background: #111; color: #fff; cursor: pointer; }
+    .case-card .price { font-weight: 800; font-size: 18px; }
+    .case-card button { padding: 8px 12px; font-size: 12px; border-radius: 10px; border: 0; color: #fff; cursor: pointer;
+                        background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 10px 24px rgba(124,58,237,.28); }
 
-    .case-panel { display: grid; gap: 10px; justify-items: center; margin-top: 10px; }
-    .open-btn { padding: 10px 16px; border-radius: 10px; border: 1px solid #222; background: #1f1f1f; color: #fff; cursor: pointer; }
-    .open-btn[disabled] { opacity: .5; cursor: not-allowed; }
+    /* Экран открытия кейса */
+    .case-open-view { width: 100%; display: none; gap: 16px; }
+    .case-open-view.is-active { display: grid; }
+    .chosen { font-size: 13px; opacity: .8; }
 
     /* РУЛЕТКА/РЕЕЛ */
-    .reel { position: relative; width: calc(var(--nw) * 3.6); height: 64px; overflow: hidden; border-radius: 12px; border: 1px dashed var(--glass-border); background: rgba(255,255,255,.04); }
-    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: rgba(255,255,255,.25); }
+    .reel { position: relative; width: 100%; max-width: 820px; height: 92px; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.04); transition: opacity 500ms ease; }
+    .reel.visible { opacity: 1; }
+    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: linear-gradient(180deg, transparent, rgba(255,255,255,.6), transparent); }
     .reel-track { display: flex; align-items: center; height: 100%; will-change: transform; }
-    .n { flex: 0 0 var(--nw); width: var(--nw); text-align:center; font-size: 28px; font-weight: 900; color: var(--fg); opacity:.9; }
-    .n.win { color:#ffd400; text-shadow:0 0 12px rgba(255,212,0,.35); }
+    .n { flex: 0 0 var(--nw); width: var(--nw); text-align:center; font-size: 32px; font-weight: 900; color: #fafafa; opacity:.95; }
+    .n.win { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); }
+
+    .open-btn { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer;
+                background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
+    .open-btn[disabled] { opacity: .5; cursor: not-allowed; }
 
     footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
   </style>
@@ -112,6 +117,7 @@
   </div>
 
   <button id="reset-btn" aria-label="обнулить прогресс">обнуление</button>
+  <button id="back-cases" aria-label="назад к кейсам">назад</button>
   <div id="fx-layer"></div>
 
   <main id="views">
@@ -122,28 +128,28 @@
 
     <!-- ТАБ: Case -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
-      <div class="sticker">Выбери сундук и нажми «Открыть». Стоимость списывается, награда случайна (цена/4 … цена×2).</div>
-      <div class="cases">
-        <div class="case"><div class="price">50</div><button class="pick" data-cost="50">Выбрать</button></div>
-        <div class="case"><div class="price">100</div><button class="pick" data-cost="100">Выбрать</button></div>
-        <div class="case"><div class="price">150</div><button class="pick" data-cost="150">Выбрать</button></div>
+      <!-- список кейсов -->
+      <div id="cases-list" class="cases-list">
+        <div class="case-card"><div class="price">50</div><button class="pick" data-cost="50">Выбрать</button></div>
+        <div class="case-card"><div class="price">100</div><button class="pick" data-cost="100">Выбрать</button></div>
+        <div class="case-card"><div class="price">150</div><button class="pick" data-cost="150">Выбрать</button></div>
       </div>
-      <div class="case-panel">
-        <div id="case-info" class="sticker">Ничего не выбрано</div>
-        <div class="reel" id="reel">
-          <div class="reel-track" id="reel-track"></div>
-        </div>
+
+      <!-- экран открытия -->
+      <section id="case-open-view" class="case-open-view">
+        <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
+        <div class="chosen">Сундук: <span id="chosen-cost">—</span></div>
         <button id="case-open" class="open-btn" disabled>Открыть</button>
-      </div>
+      </section>
     </section>
 
     <!-- ТАБ 2 -->
     <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
-      <p class="sticker">Раздел 2 (скоро)</p>
+      <p class="case-card">Раздел 2 (скоро)</p>
     </section>
     <!-- ТАБ 3 -->
     <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
-      <p class="sticker">Раздел 3 (скоро)</p>
+      <p class="case-card">Раздел 3 (скоро)</p>
     </section>
   </main>
 
@@ -154,7 +160,7 @@
     <button class="tab" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</button>
   </nav>
 
-  <footer>v12</footer>
+  <footer>v13</footer>
 
   <script>
     (function () {
@@ -165,152 +171,90 @@
       const tapBtn   = document.getElementById('hello-btn');
       const fxLayer  = document.getElementById('fx-layer');
       const resetBtn = document.getElementById('reset-btn');
+      const backBtn  = document.getElementById('back-cases');
       const balanceEl= document.getElementById('balance');
 
       // табы
       const tabs = Array.from(document.querySelectorAll('.tabbar .tab'));
-      const views = {
-        earn: document.getElementById('tab-earn'),
-        '1': document.getElementById('tab-1'),
-        '2': document.getElementById('tab-2'),
-        '3': document.getElementById('tab-3')
-      };
-      function switchTo(name){
-        tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
-        Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name));
-      }
+      const views = { earn: document.getElementById('tab-earn'), '1': document.getElementById('tab-1'), '2': document.getElementById('tab-2'), '3': document.getElementById('tab-3') };
+      function switchTo(name){ tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name)); Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name)); }
       tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
       // состояние (баланс)
       const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
       const STORAGE_KEY = `tapper-count:${userId}`;
-      let balance = 0;
-      try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){}
+      let balance = 0; try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){ }
       renderBalance();
 
       // TAP
-      tapBtn.addEventListener('click', (ev) => {
-        spawnSparks(ev);
-        balance += 1;
-        save(); renderBalance();
-      });
+      tapBtn.addEventListener('click', (ev) => { spawnSparks(ev); balance += 1; save(); renderBalance(); });
 
       // RESET
-      resetBtn.addEventListener('click', () => {
-        if (tg && typeof tg.showPopup === 'function') {
-          tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] },
-            (id)=>{ if(id==='yes') doReset(); });
-        } else if (confirm('Сбросить баланс?')) doReset();
-      });
+      resetBtn.addEventListener('click', () => { if (tg && typeof tg.showPopup === 'function') { tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] }, (id)=>{ if(id==='yes') doReset(); }); } else if (confirm('Сбросить баланс?')) doReset(); });
       function doReset(){ balance = 0; save(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
-
       function save(){ try { localStorage.setItem(STORAGE_KEY, String(balance)); } catch(_){} }
       function renderBalance(){ balanceEl.textContent = balance; }
 
       // ЭФФЕКТ ИСКР
-      function spawnSparks(ev){
-        const rect = tapBtn.getBoundingClientRect();
-        const cx = rect.left + rect.width/2;
-        const cy = rect.top  + rect.height/2;
-        const color = getComputedStyle(tapBtn).backgroundColor || '#fff';
-        const n = 18;
-        for (let i=0;i<n;i++){
-          const s = document.createElement('span'); s.className = 'spark';
-          const angle = (Math.PI * 2) * (i/n) + (Math.random()*0.5);
-          const dist = 40 + Math.random()*70;
-          s.style.left = cx + 'px'; s.style.top = cy + 'px';
-          s.style.setProperty('--tx', Math.cos(angle)*dist + 'px');
-          s.style.setProperty('--ty', Math.sin(angle)*dist + 'px');
-          s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20)) + 'deg');
-          s.style.setProperty('--dur', (500 + Math.random()*500) + 'ms');
-          s.style.color = color; fxLayer.appendChild(s);
-          s.addEventListener('animationend', ()=> s.remove());
-        }
-      }
+      function spawnSparks(ev){ const rect = tapBtn.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2; const color = getComputedStyle(tapBtn).backgroundColor || '#fff'; const n = 18; for (let i=0;i<n;i++){ const s = document.createElement('span'); s.className = 'spark'; const angle = (Math.PI * 2) * (i/n) + (Math.random()*0.5); const dist = 40 + Math.random()*70; s.style.left = cx + 'px'; s.style.top = cy + 'px'; s.style.setProperty('--tx', Math.cos(angle)*dist + 'px'); s.style.setProperty('--ty', Math.sin(angle)*dist + 'px'); s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20)) + 'deg'); s.style.setProperty('--dur', (500 + Math.random()*500) + 'ms'); s.style.color = color; fxLayer.appendChild(s); s.addEventListener('animationend', ()=> s.remove()); } }
 
-      // === КЕЙСЫ: логика и анимация рулетки ===
-      const picks = document.querySelectorAll('.pick');
-      const caseInfo = document.getElementById('case-info');
-      const caseOpen = document.getElementById('case-open');
-      const reel = document.getElementById('reel');
-      const track = document.getElementById('reel-track');
-      let selectedCost = null;
+      // === КЕЙСЫ ===
+      const casesList = document.getElementById('cases-list');
+      const openView  = document.getElementById('case-open-view');
+      const chosenEl  = document.getElementById('chosen-cost');
+      const caseOpen  = document.getElementById('case-open');
+      const reel      = document.getElementById('reel');
+      const track     = document.getElementById('reel-track');
+      let selectedCost = null; let spinning = false;
 
-      picks.forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.pick').forEach(btn => btn.addEventListener('click', () => {
         selectedCost = parseInt(btn.dataset.cost, 10);
-        const min = Math.max(1, Math.floor(selectedCost/4));
-        const max = selectedCost*2;
-        caseInfo.textContent = `Сундук за ${selectedCost}. Диапазон награды: ${min}–${max}.`;
-        buildTrack(min, max); // подготовим список чисел
+        chosenEl.textContent = selectedCost;
+        // переход на «экран открытия»: показываем back, скрываем список
+        casesList.style.display = 'none';
+        openView.classList.add('is-active');
+        backBtn.style.display = 'inline-block';
         caseOpen.disabled = false;
+        // скрываем числа до нажатия «Открыть»
+        track.innerHTML = ''; reel.classList.remove('visible'); reel.style.opacity = 0; track.style.transform = 'translateX(0)'; track.style.transition = 'none';
       }));
 
-      caseOpen.addEventListener('click', () => {
-        if (!selectedCost) return;
-        if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
+      backBtn.addEventListener('click', () => { if (spinning) return; openView.classList.remove('is-active'); casesList.style.display = ''; backBtn.style.display = 'none'; selectedCost = null; caseOpen.disabled = true; track.innerHTML=''; reel.classList.remove('visible'); });
 
-        // списываем стоимость сразу
+      caseOpen.addEventListener('click', () => { if (!selectedCost || spinning) return; if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
+        spinning = true; caseOpen.disabled = true; // списываем стоимость
         balance -= selectedCost; save(); renderBalance();
-
-        const min = Math.max(1, Math.floor(selectedCost/4));
-        const max = selectedCost*2;
-        const reward = rand(min, max);
-        spinTo(reward, {min, max});
+        const min = Math.max(1, Math.floor(selectedCost/4)); const max = selectedCost*2; const reward = rand(min, max);
+        // строим дорожку: 2 произвольных блока + финальный блок, где по фиксированному центру стоит reward
+        buildTrackShuffleWithWin(min, max, reward);
+        // плавно показать дорожку (0.5с), затем пустить прокрутку 2.5с
+        requestAnimationFrame(() => { reel.classList.add('visible'); });
+        const itemW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nw')) || 88;
+        const centerOffset = (reel.clientWidth - itemW)/2;
+        const span = max - min + 1; const centerIndex = Math.floor(span/2); // фиксированная позиция выигрыша
+        const repeatN = 3; const targetIndex = (repeatN-1)*span + centerIndex; // фиксированный индекс -> одинаковая длина анимации
+        const targetOffset = targetIndex * itemW - centerOffset;
+        // даём браузеру применить opacity, потом запускаем transform
+        setTimeout(() => { track.style.transition = 'transform 2500ms cubic-bezier(0.06, 0.8, 0.1, 1)'; track.style.transform = `translateX(${-targetOffset}px)`; }, 20);
+        // завершение
+        track.addEventListener('transitionend', () => { highlightWin(targetIndex); balance += reward; save(); renderBalance(); tg?.showAlert?.(`+${reward}`); spinning = false; caseOpen.disabled = false; }, { once: true });
       });
 
-      function buildTrack(min, max){
-        track.innerHTML = '';
-        const nums = [];
-        for (let i=min; i<=max; i++) nums.push(i);
-        // Длинная дорожка: повторим 3 раза, чтобы «прокрутка» была долгой
-        const long = nums.concat(nums, nums);
-        for (const n of long){
-          const el = document.createElement('div');
-          el.className = 'n';
-          el.textContent = n;
-          track.appendChild(el);
+      function buildTrackShuffleWithWin(min, max, reward){
+        track.innerHTML = ''; const nums = []; for(let i=min;i<=max;i++) nums.push(i);
+        const span = nums.length; const centerIndex = Math.floor(span/2); const repeatN = 3;
+        for(let r=0; r<repeatN; r++){
+          const arr = shuffle(nums.slice()); // случайный порядок
+          if (r === repeatN-1){ // последний блок: зафиксируем, чтобы в centerIndex был reward
+            const idx = arr.indexOf(reward); if (idx !== -1){ const t = arr[centerIndex]; arr[centerIndex] = arr[idx]; arr[idx] = t; }
+          }
+          for (const n of arr){ const el = document.createElement('div'); el.className = 'n'; el.textContent = n; track.appendChild(el); }
         }
-        track.style.transform = 'translateX(0)';
-        track.style.transition = 'none';
+        track.style.transition = 'none'; track.style.transform = 'translateX(0)';
       }
 
-      function spinTo(value, {min, max}){
-        // снять выделения
-        track.querySelectorAll('.n').forEach(el => el.classList.remove('win'));
-
-        // если дорожка не собрана — соберём
-        if (!track.firstElementChild) buildTrack(min, max);
-
-        const items = Array.from(track.children);
-        const itemW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nw')) || 72;
-        const containerW = reel.clientWidth;
-        const centerOffset = (containerW - itemW)/2; // хотим, чтобы число оказалось по центру
-
-        // найдём индекс value в ТРЕТЬЕМ повторе (чтобы прокрутка была длиннее)
-        const span = max - min + 1;
-        const baseIndex = (value - min);       // индекс в одном повторе
-        const targetIndex = span*2 + baseIndex; // третий блок
-
-        const targetOffset = targetIndex * itemW - centerOffset;
-
-        // стартовое положение: 0; запускаем плавное замедление к цели
-        requestAnimationFrame(() => {
-          track.style.transition = 'transform 1800ms cubic-bezier(0.06, 0.8, 0.1, 1)';
-          track.style.transform = `translateX(${-targetOffset}px)`;
-        });
-
-        // после завершения — начисляем награду и подсветим выигрышное число
-        const onDone = () => {
-          const winEl = items[targetIndex];
-          winEl?.classList.add('win');
-          const reward = value;
-          balance += reward; save(); renderBalance();
-          tg?.showAlert?.(`+${reward}`);
-          track.removeEventListener('transitionend', onDone);
-        };
-        track.addEventListener('transitionend', onDone);
-      }
-
+      function highlightWin(targetIndex){ const items = Array.from(track.children); items.forEach(el => el.classList.remove('win')); const el = items[targetIndex]; if (el) el.classList.add('win'); }
+      function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
       function rand(min, max){ return Math.floor(Math.random()*(max-min+1)) + min; }
 
       // стартуем на «Tap»
