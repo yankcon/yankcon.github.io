@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — пост‑панк + уровни (v7)</title>
+  <title>Мини‑апп — табы + тапалка (v8)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --gap: 18px;
       --bg: #0a0a0a;   /* тёмный фон */
       --fg: #eaeaea;   /* светлый текст */
-      --red:    #ff3b30;
-      --blue:   #2d9cff;
-      --green:  #2ecc71;
-      --yellow: #ffd400;
+      --accent: #ff3b30; /* цвет кнопки */
+      --glass: rgba(255,255,255,.06);
+      --glass-border: rgba(255,255,255,.25);
     }
     html, body { height: 100%; margin: 0; }
     * { -webkit-tap-highlight-color: transparent; }
@@ -30,10 +29,10 @@
 
     /* кнопка обнуления */
     #reset-btn {
-      position: fixed; top: 10px; left: 10px; z-index: 10;
+      position: fixed; top: 10px; left: 10px; z-index: 20;
       padding: 6px 10px; font-size: 12px; letter-spacing: .3px; text-transform: lowercase;
-      color: var(--fg); background: rgba(255,255,255,.06);
-      border: 1px dashed rgba(255,255,255,.35); border-radius: 10px;
+      color: var(--fg); background: var(--glass);
+      border: 1px dashed var(--glass-border); border-radius: 10px;
       backdrop-filter: blur(2px); cursor: pointer; outline: none; -webkit-appearance: none;
       transition: opacity .2s ease, transform .05s ease;
     }
@@ -42,9 +41,13 @@
     #reset-btn:active { transform: translateY(1px); }
 
     /* слой для искр */
-    #fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+    #fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
 
-    main { display: grid; justify-items: center; gap: var(--gap); }
+    main { width: 100%; max-width: 720px; padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0)); box-sizing: border-box; }
+
+    .view { display: none; min-height: calc(100dvh - 140px); /* чтобы центрирование было стабильным */
+            justify-items: center; align-content: center; gap: var(--gap); }
+    .view.is-active { display: grid; }
 
     .btn {
       font-size: clamp(24px, 6vw, 44px);
@@ -54,137 +57,123 @@
       color: #fff; cursor: pointer; outline: none; -webkit-appearance: none;
       box-shadow: 0 10px 26px rgba(0,0,0,.35), inset 0 -3px rgba(0,0,0,.25);
       transition: transform .06s ease, filter .2s ease, background .2s ease;
-      position: relative;
+      position: relative; background: var(--accent);
     }
     .btn:focus, .btn:focus-visible { outline: none; }
     .btn:active { transform: translateY(1px) scale(0.995); }
 
-    /* цвета уровней */
-    .btn--red    { background: var(--red);    box-shadow: 0 10px 26px rgba(255,59,48,.3), inset 0 -3px rgba(0,0,0,.25); }
-    .btn--blue   { background: var(--blue);   box-shadow: 0 10px 26px rgba(45,156,255,.3), inset 0 -3px rgba(0,0,0,.25); }
-    .btn--green  { background: var(--green);  box-shadow: 0 10px 26px rgba(46,204,113,.3), inset 0 -3px rgba(0,0,0,.25); }
-    .btn--yellow { background: var(--yellow); color:#111; box-shadow: 0 10px 26px rgba(255,212,0,.35), inset 0 -3px rgba(0,0,0,.2); }
-
-    /* «наклейки» */
-    .sticker {
-      background: rgba(255,255,255,.06);
-      border: 1px dashed rgba(255,255,255,.25);
-      padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px);
-      transform: rotate(-1.25deg);
-    }
+    .sticker { background: var(--glass); border: 1px dashed var(--glass-border); padding: 8px 12px; border-radius: 10px; backdrop-filter: blur(2px); transform: rotate(-1.25deg); }
     .counter { font-size: clamp(18px, 4vw, 22px); opacity:.95; }
-    .hint { font-size: 12px; opacity:.65; transform: rotate(0.75deg); margin-top: -6px; }
 
-    /* искры */
-    .spark {
-      position: absolute; width: 2px; height: 10px; border-radius: 1px; opacity: 0;
-      transform: translate(0,0) rotate(var(--rot,0deg));
-      background: currentColor;
-      filter: drop-shadow(0 0 4px currentColor);
-      animation: spark-move var(--dur,700ms) cubic-bezier(.2,.7,.2,1) forwards;
+    /* нижняя таб‑панель */
+    .tabbar { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0));
+              display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: center;
+              background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 25%, rgba(0,0,0,.55) 100%);
+              backdrop-filter: blur(6px); border-top: 1px dashed var(--glass-border);
     }
-    @keyframes spark-move {
-      0% { opacity: 1; transform: translate(0,0) rotate(var(--rot)); }
-      90% { opacity: 1; }
-      100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 0)) rotate(var(--rot)) scale(.8); }
-    }
+    .tab { height: 46px; border-radius: 12px; border: 1px dashed var(--glass-border); background: var(--glass); color: var(--fg);
+           font-size: 14px; letter-spacing: .4px; cursor: pointer; outline: none; -webkit-appearance: none; }
+    .tab.is-active { background: rgba(255,255,255,.14); border-style: solid; }
 
-    footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45 }
+    footer { position: fixed; bottom: 8px; left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
   </style>
 </head>
 <body>
   <button id="reset-btn" aria-label="обнулить прогресс">обнуление</button>
   <div id="fx-layer"></div>
-  <main>
-    <button id="hello-btn" class="btn btn--red" aria-label="привет">ПРИВЕТ</button>
-    <p class="sticker counter">Нажатий: <span id="count" aria-live="polite">0</span></p>
-    <p class="sticker hint" id="goal"></p>
+
+  <main id="views">
+    <!-- ТАБ 1: Заработать (тапалка) -->
+    <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
+      <button id="hello-btn" class="btn" aria-label="привет">ПРИВЕТ</button>
+      <p class="sticker counter">Нажатий: <span id="count" aria-live="polite">0</span></p>
+    </section>
+
+    <!-- ТАБЫ‑заглушки -->
+    <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
+      <p class="sticker">Раздел 1 (скоро)</p>
+    </section>
+    <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
+      <p class="sticker">Раздел 2 (скоро)</p>
+    </section>
+    <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
+      <p class="sticker">Раздел 3 (скоро)</p>
+    </section>
   </main>
-  <footer>v7</footer>
+
+  <nav class="tabbar" role="tablist" aria-label="Навигация по разделам">
+    <button class="tab is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Заработать</button>
+    <button class="tab" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">1</button>
+    <button class="tab" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">2</button>
+    <button class="tab" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</button>
+  </nav>
+
+  <footer>v8</footer>
 
   <script>
     (function () {
       const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
       if (tg) { tg.ready(); tg.expand(); }
 
-      const LEVELS = ['red', 'blue', 'green', 'yellow'];
-      const TARGETS = { red: 10, blue: 50, green: 100, yellow: Infinity };
-      const COLORS  = { red: getComputedStyle(document.documentElement).getPropertyValue('--red').trim(),
-                        blue: getComputedStyle(document.documentElement).getPropertyValue('--blue').trim(),
-                        green: getComputedStyle(document.documentElement).getPropertyValue('--green').trim(),
-                        yellow: getComputedStyle(document.documentElement).getPropertyValue('--yellow').trim() };
-
-      const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
-      const STORAGE_KEY = `hello-state:${userId}`;
-
+      // элементы
       const btn = document.getElementById('hello-btn');
       const countEl = document.getElementById('count');
-      const goalEl  = document.getElementById('goal');
       const fxLayer = document.getElementById('fx-layer');
       const resetBtn = document.getElementById('reset-btn');
 
-      let state = { level: 'red', count: 0 };
-      try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) state = JSON.parse(saved); } catch(_){}
-      if (!LEVELS.includes(state.level) || typeof state.count !== 'number') state = { level:'red', count:0 };
+      // табы
+      const tabs = Array.from(document.querySelectorAll('.tabbar .tab'));
+      const views = {
+        earn: document.getElementById('tab-earn'),
+        '1': document.getElementById('tab-1'),
+        '2': document.getElementById('tab-2'),
+        '3': document.getElementById('tab-3')
+      };
 
-      function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(_){} }
-      function clear(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(_){} }
-
-      function applyLevel(){
-        btn.classList.remove('btn--red','btn--blue','btn--green','btn--yellow');
-        btn.classList.add(`btn--${state.level}`);
-        const target = TARGETS[state.level];
-        goalEl.textContent = state.level === 'yellow' ? 'Жёлтый уровень — кликай бесконечно.' : `Цель на этом уровне: ${target}.`;
+      function switchTo(name){
+        tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
+        Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name));
       }
-      function render(){ countEl.textContent = state.count; }
+      tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
-      applyLevel(); render();
+      // состояние счётчика (простой вариант без уровней)
+      const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
+      const STORAGE_KEY = `tapper-count:${userId}`;
+      let count = 0;
+      try { const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) count = parseInt(saved, 10) || 0; } catch(_){}
+      countEl.textContent = count;
 
       btn.addEventListener('click', (ev) => {
         spawnSparks(ev);
-        state.count += 1;
-        const target = TARGETS[state.level];
-        if (state.count >= target) {
-          state.count = 0;
-          const idx = LEVELS.indexOf(state.level);
-          if (state.level !== 'yellow' && idx < LEVELS.length - 1) {
-            state.level = LEVELS[idx + 1];
-            applyLevel();
-          }
-        }
-        render();
-        save();
+        count += 1;
+        countEl.textContent = count;
+        try { localStorage.setItem(STORAGE_KEY, String(count)); } catch(_){}
       });
 
-      resetBtn.addEventListener('click', async () => {
-        // подтверждение сброса
+      resetBtn.addEventListener('click', () => {
         if (tg && typeof tg.showPopup === 'function') {
           tg.showPopup({
             title: 'Обнуление',
-            message: 'Сбросить весь прогресс? Это действие необратимо.',
-            buttons: [
-              { id: 'yes', type: 'destructive', text: 'Сбросить' },
-              { type: 'cancel' }
-            ]
-          }, (btnId) => { if (btnId === 'yes') doReset(); });
+            message: 'Сбросить прогресс счётчика?',
+            buttons: [ { id:'yes', type:'destructive', text:'Сбросить' }, { type:'cancel' } ]
+          }, (id) => { if (id === 'yes') doReset(); });
         } else {
-          if (window.confirm('Сбросить весь прогресс?')) doReset();
+          if (window.confirm('Сбросить прогресс счётчика?')) doReset();
         }
       });
 
       function doReset(){
-        state = { level:'red', count:0 };
-        clear();
-        applyLevel();
-        render();
-        if (tg && typeof tg.showAlert === 'function') tg.showAlert('Прогресс обнулён');
+        count = 0; countEl.textContent = 0;
+        try { localStorage.removeItem(STORAGE_KEY); } catch(_){}
+        if (tg && typeof tg.showAlert === 'function') tg.showAlert('Готово: 0');
       }
 
+      // эффект искр
       function spawnSparks(ev){
         const rect = btn.getBoundingClientRect();
-        const cx = rect.left + rect.width/2; // центр кнопки
+        const cx = rect.left + rect.width/2;
         const cy = rect.top  + rect.height/2;
-        const color = COLORS[state.level] || '#fff';
+        const color = getComputedStyle(btn).backgroundColor || '#fff';
         const n = 18;
         for (let i=0;i<n;i++){
           const s = document.createElement('span');
@@ -206,6 +195,9 @@
           s.addEventListener('animationend', ()=> s.remove());
         }
       }
+
+      // стартуем на «Заработать»
+      switchTo('earn');
     })();
   </script>
 </body>
