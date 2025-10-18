@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case + Инвентарь (v19)</title>
+  <title>Мини‑апп — Tap + Case + Инвентарь (v21)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -91,7 +91,7 @@
     .case-card .price { font-weight: 800; font-size: 16px; opacity:.85; }
 
     /* экран открытия кейса */
-    .case-open-view { width: 100%; display: none; gap: 16px; justify-items: center; }
+    .case-open-view { width: 100%; display: none; gap: 14px; justify-items: center; align-content: start; grid-template-rows: auto auto auto 1fr; }
     .case-open-view.is-active { display: grid; }
 
     /* превью кейса (исчезает при старте) */
@@ -110,21 +110,21 @@
     .card.win .label { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); opacity:1; }
 
     /* Кнопка «Открыть» в общем стиле */
-    .open-btn { composes: btn-primary; }
+    .open-btn { padding: 14px 22px; border-radius: 14px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
     .open-btn { padding: 14px 22px; border-radius: 14px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
 
-    .actions { display:none; gap:10px; }
+    .actions { display:none; gap:10px; justify-content: center; }
     .actions.is-active { display:grid; grid-auto-flow: column; }
     .a-btn { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; }
     .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
     .keep { background: linear-gradient(135deg, #22c55e, #16a34a); }
 
     /* Плашка цены выигрыша */
-    .win-price { display:none; padding: 8px 12px; border-radius: 999px; background: var(--pill); color: #3b2c00; font-weight: 800; box-shadow: 0 8px 20px rgba(255,184,0,.25); }
+    /* .win-price удалена — цена теперь в кнопках */
     .win-price.show { display:inline-block; }
 
     /* Лист с перечнем всех предметов */
-    .pricelist { width: 100%; max-width: 900px; display: grid; grid-auto-flow: column; grid-auto-columns: 160px; gap: 10px; overflow-x: auto; padding: 4px; }
+    .pricelist { width: 100%; max-width: 900px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; overflow-y: auto; max-height: 280px; padding: 4px 4px 10px; }
     .pricelist .mini { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
     .pricelist .mini img { width: 100%; height: 90px; object-fit: contain; background: rgba(0,0,0,.15); border:1px solid var(--glass-border); border-radius: 8px; }
     .mini .t { font-size: 12px; opacity:.9; text-align:center; }
@@ -144,8 +144,8 @@
     .modal-card img { width: 100%; height: 220px; object-fit: contain; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
     .modal-title { font-weight: 800; }
     .modal-actions { display: grid; grid-auto-flow: column; gap: 10px; }
-    .modal .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
-    .modal .close { background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .modal .sell { background: var(--pill); color:#3b2c00; border: 0; box-shadow: 0 10px 24px rgba(255,184,0,.25); }
+    .modal .close { background: var(--glass); color: var(--fg); border: 1px solid var(--glass-border); box-shadow: 0 8px 20px rgba(0,0,0,.25); }
   </style>
 </head>
 <body>
@@ -184,11 +184,10 @@
       <section id="case-open-view" class="case-open-view">
         <div id="case-preview" class="case-preview"><img src="case.png" alt="Кейс"></div>
         <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
-        <button id="case-open" class="btn-primary">Открыть</button>
-        <div class="win-price" id="win-price"></div>
+        <button id="case-open" class="open-btn">Открыть — 50 Taps</button>
         <div class="actions" id="case-actions">
-          <button class="a-btn sell" id="sell-btn">Продать</button>
-          <button class="a-btn keep" id="keep-btn">Сохранить</button>
+          <button class="a-btn sell btn-primary" id="sell-btn">Продать</button>
+          <button class="a-btn keep btn-secondary" id="keep-btn">Сохранить</button>
         </div>
         <div class="pricelist" id="pricelist"></div>
       </section>
@@ -227,7 +226,7 @@
     </div>
   </div>
 
-  <footer>v19</footer>
+  <footer>v21</footer>
 
   <script>
     (function () {
@@ -293,7 +292,7 @@
       const actions   = document.getElementById('case-actions');
       const sellBtn   = document.getElementById('sell-btn');
       const keepBtn   = document.getElementById('keep-btn');
-      const winPriceEl= document.getElementById('win-price');
+      
 
       const reel      = document.getElementById('reel');
       const track     = document.getElementById('reel-track');
@@ -322,18 +321,7 @@
 
       let selectedCost = null; let spinning = false; let lastWin = null;
 
-      // вход в кейс по клику на карточку
-      caseCard.addEventListener('click', () => {
-        selectedCost = 50; // один кейс
-        casesList.style.display = 'none';
-        openView.classList.add('is-active');
-        // показать back только тут
-        ensureBackVisibility();
-        caseOpen.disabled = false; actions.classList.remove('is-active'); lastWin = null; winPriceEl.classList.remove('show');
-        // скрыть трек до открытия, показать превью кейса
-        track.innerHTML = ''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
-        track.style.transform = 'translateX(0)'; track.style.transition = 'none';
-      });
+      $1
 
       // Back из кейса
       backBtn.addEventListener('click', () => { if (spinning) return; resetCaseView(); });
@@ -342,7 +330,7 @@
         openView.classList.remove('is-active');
         casesList.style.display = '';
         backBtn.style.display = 'none';
-        selectedCost = null; caseOpen.disabled = true; actions.classList.remove('is-active'); lastWin = null; winPriceEl.classList.remove('show');
+        selectedCost = null; caseOpen.disabled = true; actions.classList.remove('is-active'); lastWin = null; 
         track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
       }
 
@@ -353,11 +341,12 @@
       caseOpen.addEventListener('click', () => {
         if (!selectedCost || spinning) return;
         if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
-        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active'); winPriceEl.classList.remove('show');
+        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active'); 
         balance -= selectedCost; saveBal(); renderBalance();
 
         // Случайный выигрыш среди трёх фото
-        const rewardItem = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+        // равновероятный выбор (1/3)
+        const rewardItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
         lastWin = rewardItem;
 
         buildPhotoTrackWithWin(rewardItem);
@@ -385,7 +374,7 @@
             track.addEventListener('transitionend', () => {
               highlightWin(targetIndex);
               spinning = false; caseOpen.disabled = false; actions.classList.add('is-active');
-              winPriceEl.textContent = lastWin.price + ' Taps'; winPriceEl.classList.add('show');
+              sellBtn.textContent = `Продать — ${lastWin.price} Taps`;
             }, { once:true });
           });
         });
@@ -422,8 +411,8 @@
       const modalSell = document.getElementById('modal-sell');
       const modalClose = document.getElementById('modal-close');
 
-      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); winPriceEl.classList.remove('show'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
-      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); winPriceEl.classList.remove('show'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
+      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active');  tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active');  tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
 
       function getInv(){ try{ return JSON.parse(localStorage.getItem(STORAGE_INV) || '[]'); }catch(_){ return []; } }
       function setInv(arr){ try{ localStorage.setItem(STORAGE_INV, JSON.stringify(arr)); }catch(_){} }
