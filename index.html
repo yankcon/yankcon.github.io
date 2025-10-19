@@ -1,179 +1,211 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini App — Tap / Case / Inventory (v28)</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root{
-      --gap:18px;
-      --bg1:#0f0f16; --bg2:#15182b; --fg:#eaeaea;
-      --accent:#ff3b30;
-      --brand1:#7c3aed; --brand2:#ff3b81;
-      --glass:rgba(255,255,255,.06); --glass-border:rgba(255,255,255,.22);
-      --card-w:156px; --seg-h:54px;
-      --pill:linear-gradient(135deg,#ffd85a,#ffb300);
-    }
-    html,body{height:100%;margin:0}
-    *{-webkit-tap-highlight-color:transparent}
-    body{
-      color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      user-select:none; overflow:hidden; position:relative;
-      background:
-        radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
-        radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
-        linear-gradient(180deg,var(--bg1),var(--bg2));
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mini App — Tap / Case / Inventory (v29)</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --gap:18px;
+    --bg1:#0f0f16; --bg2:#15182b; --fg:#eaeaea;
+    --accent:#ff3b30;
+    --brand1:#7c3aed; --brand2:#ff3b81;
+    --glass:rgba(255,255,255,.06); --glass-border:rgba(255,255,255,.22);
+    --seg-h:54px;
 
-    /* баланс */
-    #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
-      padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
-      border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    #wallet img{width:22px;height:22px;object-fit:contain;display:block}
-    #balance{font-weight:800;letter-spacing:.2px}
+    /* размеры рулетки */
+    --stage-w: min(92vw, 560px);
+    --stage-h: clamp(200px, 52vw, 360px);
+    --card-w : clamp(120px, 28vw, 220px);
+  }
+  html,body{height:100%;margin:0}
+  *{-webkit-tap-highlight-color:transparent}
+  body{
+    color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    user-select:none; overflow:hidden; position:relative;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
+      radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
+      linear-gradient(180deg,var(--bg1),var(--bg2));
+  }
 
-    /* верхние кнопки */
-    #reset-btn,#back-cases{
-      position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
-      background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
-      cursor:pointer;outline:none;transition:transform .05s ease
-    }
-    #reset-btn{top:10px}
-    #back-cases{top:44px;display:none}
-    #reset-btn:active,#back-cases:active{transform:translateY(1px)}
+  /* баланс */
+  #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
+    border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  #wallet img{width:22px;height:22px;display:block;object-fit:contain}
+  #balance{font-weight:800;letter-spacing:.2px}
 
-    /* FX искры */
-    #fx-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
-    .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
-      transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
-    @keyframes pop{ 80%{opacity:1} 100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0} }
+  /* верхние кнопки */
+  #reset-btn,#back-cases{
+    position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
+    background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
+    cursor:pointer;outline:none;transition:transform .05s ease
+  }
+  #reset-btn{top:10px}
+  #back-cases{top:44px;display:none}
+  #reset-btn:active,#back-cases:active{transform:translateY(1px)}
 
-    /* нижняя панель */
-    .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
-      display:grid;grid-template-columns:repeat(4,1fr);align-items:stretch;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.75));
-      border-top:1px solid var(--glass-border)}
-    .seg{display:grid;place-items:center;font-size:12px;letter-spacing:.3px;color:#cfd3ff;background:rgba(255,255,255,.04)}
-    .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
-    .seg.is-active{color:#fff;background:rgba(255,255,255,.12);box-shadow:inset 0 2px rgba(255,255,255,.25)}
-    footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
+  /* FX искры */
+  #fx-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+  .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
+    transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
+  @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
 
-    /* основной контейнер. Скролл — только на конкретных вкладках */
-    main{
-      width:100%;max-width:100%;
-      height:calc(100dvh - var(--seg-h));
-      padding:16px 12px calc(var(--seg-h) + env(safe-area-inset-bottom,0));
-      box-sizing:border-box; overflow:hidden;
-    }
-    .view{display:none; gap:var(--gap)}
-    .view.is-active{display:grid}         /* <— управляем показом только классом */
+  /* нижняя панель */
+  .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
+    display:grid;grid-template-columns:repeat(4,1fr);align-items:stretch;
+    background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.75));
+    border-top:1px solid var(--glass-border); overflow:hidden}
+  .segbar::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));pointer-events:none}
+  .seg{display:grid;place-items:center;font-size:12px;letter-spacing:.3px;color:#cfd3ff;background:rgba(255,255,255,.04)}
+  .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
+  .seg.is-active{color:#fff;background:rgba(255,255,255,.12);box-shadow:inset 0 2px rgba(255,255,255,.25)}
+  footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
 
-    /* TAP — центр экрана, без прокрутки (не задаём display здесь!) */
-    #tab-earn{width:100%;height:100%; place-items:center;}
-    .tap-wrap{position:relative}
-    .tap-cat{position:absolute;left:50%;transform:translateX(-50%) translateY(-10px);bottom:100%;height:90px;pointer-events:none}
-    .tap-cat img{position:absolute;left:50%;transform:translateX(-50%);top:0;height:90px;transition:opacity .08s ease}
-    #cat-a{opacity:1} #cat-b{opacity:0}
-    .btn{font-size:clamp(22px,5vw,40px);letter-spacing:1px;text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);transition:transform .06s ease}
-    .btn:active{transform:translateY(1px) scale(.995)}
+  /* контейнер вкладок */
+  main{
+    width:100%;max-width:100%;
+    height:calc(100dvh - var(--seg-h));
+    padding:16px 12px calc(var(--seg-h) + env(safe-area-inset-bottom,0));
+    box-sizing:border-box; overflow:hidden;
+  }
+  .view{display:none}
+  .view.is-active{display:block}
+  .view:not(.is-active){display:none !important;} /* жёстко скрываем неактивные */
 
-    /* CASE (list) — можно скроллить, один кейс по центру, ближе к верху */
-    #tab-1{width:100%;height:100%; overflow:auto; display:grid; justify-items:center; align-content:start; padding-top:8vh;}
-    .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
-    .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
-    .case-card img{width:200px;height:200px;object-fit:cover;border-radius:12px}
-    .case-title{font-weight:800}
-    .case-card .price{font-weight:800;font-size:16px;opacity:.85}
+  /* TAP: центр экрана, без прокрутки */
+  #tab-earn{width:100%;height:100%;}
+  .tap-center{height:100%;display:grid;place-items:center}
+  .tap-wrap{position:relative}
+  .tap-cat{position:absolute;left:50%;transform:translateX(-50%) translateY(-10px);bottom:100%;height:90px;pointer-events:none}
+  .tap-cat img{position:absolute;left:50%;transform:translateX(-50%);top:0;height:90px;transition:opacity .08s ease}
+  #cat-a{opacity:1} #cat-b{opacity:0}
+  .btn{font-size:clamp(22px,5vw,40px);letter-spacing:1px;text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);transition:transform .06s ease}
+  .btn:active{transform:translateY(1px) scale(.995)}
 
-    /* внутри кейса — сцена и кнопки, без постороннего */
-    .case-open-view{width:100%;height:100%; display:none; grid-auto-rows:auto; justify-items:center; align-content:start; overflow:hidden; padding-top:max(0px, calc(62.5vh - 160px)); gap:12px;}
-    .case-open-view.is-active{display:grid}
-    .case-stage{position:relative;width:220px;height:220px;border-radius:14px}
-    .case-preview{position:absolute;inset:0;border-radius:14px;overflow:hidden;opacity:1;transition:opacity 400ms ease}
-    .case-preview.hide{opacity:0}
-    .case-preview img{width:100%;height:100%;object-fit:cover}
-    .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 500ms ease}
-    .reel.visible{opacity:1}
-    .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
-    .reel-track{display:flex;align-items:center;height:100%;will-change:transform}
-    .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:6px}
-    .card img{width:calc(var(--card-w) - 6px);height:160px;object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-    .card .label{font-size:13px;opacity:.75;margin-bottom:8px}
-    .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5);opacity:1}
-    .open-btn{padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
-    .actions{display:none;gap:10px;justify-content:center}
-    .actions.is-active{display:grid;grid-auto-flow:column}
-    .a-btn{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer}
-    .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
-    .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
+  /* CASE list: можно скроллить, один кейс по центру, ближе к верху */
+  #tab-1{width:100%;height:100%;overflow:auto}
+  .case-host{display:grid;justify-items:center;align-content:start;gap:14px;padding-top:8vh}
+  .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
+  .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
+  .case-card img{width:260px;max-width:70vw;height:auto;aspect-ratio:1 / 1;object-fit:cover;border-radius:12px}
+  .case-title{font-weight:800}
+  .case-card .price{font-weight:800;font-size:16px;opacity:.85}
 
-    /* INVENTORY — только предметы; пусто = ничего не видно */
-    #tab-2{width:100%;height:100%;overflow:auto;display:grid;align-content:start}
-    .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
-    .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
-    .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-    .inv-card .title{font-size:12px;opacity:.85}
+  /* экрани внутри кейса */
+  .case-open-view{display:none}
+  .case-open-view.is-active{display:block}
+  .case-stage{position:relative;width:var(--stage-w);height:var(--stage-h);margin:0 auto;border-radius:14px}
+  .case-preview{position:absolute;inset:0;border-radius:14px;overflow:hidden;opacity:1;transition:opacity 400ms ease}
+  .case-preview.hide{opacity:0}
+  .case-preview img{width:100%;height:100%;object-fit:cover}
 
-    /* модалка */
-    .modal{position:fixed;inset:0;display:none;z-index:40}
-    .modal.show{display:grid;place-items:center}
-    .modal::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
-    .modal-card{position:relative;z-index:1;width:min(92vw,420px);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid var(--glass-border);border-radius:14px;padding:14px;display:grid;gap:10px}
-    .modal-card img{width:100%;height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-    .modal-title{font-weight:800}
-    .modal-actions{display:grid;grid-auto-flow:column;gap:10px}
-    .modal .sell{background:var(--pill);color:#3b2c00;border:0;box-shadow:0 10px 24px rgba(255,184,0,.25)}
-    .modal .close{background:var(--glass);color:var(--fg);border:1px solid var(--glass-border);box-shadow:0 8px 20px rgba(0,0,0,.25)}
-  </style>
+  .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 500ms ease}
+  .reel.visible{opacity:1}
+  .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
+  .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translateZ(0)}
+
+  .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:6px}
+  .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 60px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+  .card .label{font-size:13px;opacity:.85;margin-bottom:8px}
+  .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5);opacity:1}
+
+  .open-btn{display:block;margin:12px auto 10px;padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
+  .actions{display:none;gap:10px;justify-content:center}
+  .actions.is-active{display:grid;grid-auto-flow:column}
+  .a-btn{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer}
+  .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
+  .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
+
+  /* список дропов, скролл вниз */
+  .drops{margin:18px auto 24px;max-width:var(--stage-w);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .drop{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
+  .drop img{width:100%;height:120px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
+  .drop .t{font-size:12px;opacity:.95;text-align:center}
+  .drop .p{font-weight:800}
+
+  /* INVENTORY */
+  #tab-2{width:100%;height:100%;overflow:auto}
+  .inv-host{display:grid;gap:12px}
+  .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
+  .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+  .inv-card .title{font-size:12px;opacity:.85}
+
+  /* модалка */
+  .modal{position:fixed;inset:0;display:none;z-index:40}
+  .modal.show{display:grid;place-items:center}
+  .modal::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+  .modal-card{position:relative;z-index:1;width:min(92vw,420px);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid var(--glass-border);border-radius:14px;padding:14px;display:grid;gap:10px}
+  .modal-card img{width:100%;height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+  .modal-title{font-weight:800}
+  .modal-actions{display:grid;grid-auto-flow:column;gap:10px}
+  .modal .sell{background:linear-gradient(135deg,#ffd85a,#ffb300);color:#3b2c00;border:0;box-shadow:0 10px 24px rgba(255,184,0,.25)}
+  .modal .close{background:var(--glass);color:var(--fg);border:1px solid var(--glass-border);box-shadow:0 8px 20px rgba(0,0,0,.25)}
+</style>
 </head>
 <body>
-  <div id="wallet" aria-live="polite"><img src="hand.png" alt="tap"><span id="balance">0</span></div>
+  <div id="wallet"><img src="hand.png" alt=""><span id="balance">0</span></div>
   <button id="reset-btn">обнуление</button>
   <button id="back-cases">назад</button>
   <div id="fx-layer"></div>
 
   <main id="views">
-    <!-- TAP — только кот и кнопка -->
-    <section id="tab-earn" class="view is-active">
-      <div class="tap-wrap">
-        <div class="tap-cat">
-          <img id="cat-a" src="cat1.png" alt="">
-          <img id="cat-b" src="cat2.png" alt="">
+    <!-- TAP -->
+    <section id="tab-earn" class="view is-active" role="region" aria-label="Tap">
+      <div class="tap-center">
+        <div class="tap-wrap">
+          <div class="tap-cat">
+            <img id="cat-a" src="cat1.png" alt="">
+            <img id="cat-b" src="cat2.png" alt="">
+          </div>
+          <button id="hello-btn" class="btn">TAP</button>
         </div>
-        <button id="hello-btn" class="btn">TAP</button>
+      </div>
+    </section>
+
+    <!-- CASE -->
+    <section id="tab-1" class="view" role="region" aria-label="Case">
+      <div class="case-host">
+        <div id="cases-list" class="cases-list">
+          <div class="case-card" id="case-card" role="button" tabindex="0" aria-label="Сезонный Рома">
+            <div class="case-title">Сезонный Рома</div>
+            <img src="case.png" alt="">
+            <div class="price">50 Taps</div>
+          </div>
+        </div>
+
+        <!-- экран открытия -->
+        <section id="case-open-view" class="case-open-view" aria-hidden="true">
+          <div class="case-stage">
+            <div id="case-preview" class="case-preview"><img src="case.png" alt=""></div>
+            <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
+          </div>
+          <button id="case-open" class="open-btn">Открыть — 50 Taps</button>
+
+          <div class="actions" id="case-actions">
+            <button class="a-btn sell" id="sell-btn">Продать</button>
+            <button class="a-btn keep" id="keep-btn">Сохранить</button>
+          </div>
+
+          <div class="drops" id="drops"></div>
+        </section>
       </div>
     </section>
 
-    <!-- CASE — только кейсы / экран открытия -->
-    <section id="tab-1" class="view">
-      <div id="cases-list" class="cases-list">
-        <div class="case-card" id="case-card" role="button" tabindex="0" aria-label="Открыть кейс">
-          <div class="case-title">Сезонный Рома</div>
-          <img src="case.png" alt="">
-          <div class="price">50 Taps</div>
-        </div>
+    <!-- INVENTORY -->
+    <section id="tab-2" class="view" role="region" aria-label="Inventory">
+      <div class="inv-host">
+        <div class="inv-grid" id="inv-grid"></div>
       </div>
-
-      <section id="case-open-view" class="case-open-view">
-        <div class="case-stage">
-          <div id="case-preview" class="case-preview"><img src="case.png" alt=""></div>
-          <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
-        </div>
-        <button id="case-open" class="open-btn">Открыть — 50 Taps</button>
-        <div class="actions" id="case-actions">
-          <button class="a-btn sell" id="sell-btn">Продать</button>
-          <button class="a-btn keep" id="keep-btn">Сохранить</button>
-        </div>
-      </section>
     </section>
 
-    <!-- INVENTORY — только предметы, пусто = ничего -->
-    <section id="tab-2" class="view">
-      <div class="inv-grid" id="inv-grid"></div>
-    </section>
-
-    <!-- пустой 3-й таб -->
-    <section id="tab-3" class="view"></section>
+    <!-- пустой 3й -->
+    <section id="tab-3" class="view" role="region" aria-label="3"></section>
   </main>
 
   <nav class="segbar" role="tablist" aria-label="Навигация">
@@ -183,216 +215,248 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v28</footer>
+  <footer>v29</footer>
 
-  <script>
-  (function(){
-    const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
+  <!-- Модалка инвентаря -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <img id="modal-img" alt="" />
+      <div class="modal-title" id="modal-title"></div>
+      <div id="modal-price"></div>
+      <div class="modal-actions">
+        <button class="a-btn sell" id="modal-sell">Продать</button>
+        <button class="a-btn close" id="modal-close">Назад</button>
+      </div>
+    </div>
+  </div>
 
-    // ——— refs
-    const tapBtn   = document.getElementById('hello-btn');
-    const fxLayer  = document.getElementById('fx-layer');
-    const resetBtn = document.getElementById('reset-btn');
-    const backBtn  = document.getElementById('back-cases');
-    const balanceEl= document.getElementById('balance');
+<script>
+(function(){
+  const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
 
-    const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
-    const views = {
-      earn: document.getElementById('tab-earn'),
-      '1' : document.getElementById('tab-1'),
-      '2' : document.getElementById('tab-2'),
-      '3' : document.getElementById('tab-3')
-    };
-    function switchTo(name){
-      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab===name));
-      Object.entries(views).forEach(([k,v]) => v.classList.toggle('is-active', k===name));
-      ensureBackVisibility();
-      if (name!=='1') resetCaseView();
-      if (name!=='2') closeModal();
+  // ---- навигация
+  const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
+  const views = {
+    earn: document.getElementById('tab-earn'),
+    '1' : document.getElementById('tab-1'),
+    '2' : document.getElementById('tab-2'),
+    '3' : document.getElementById('tab-3')
+  };
+  function switchTo(name){
+    tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab===name));
+    Object.entries(views).forEach(([k,v]) => v.classList.toggle('is-active', k===name));
+    // фикс полосок/перелива: просто перекрываем контент под баром
+    if (name==='1'){ // при входе в Case — всегда к началу
+      views['1'].scrollTo({top:0, behavior:'auto'});
     }
-    tabs.forEach(t => t.addEventListener('click', ()=>switchTo(t.dataset.tab)));
+    ensureBackVisibility();
+    if (name!=='1') resetCaseView();
+    if (name!=='2') closeModal();
+  }
+  tabs.forEach(t => t.addEventListener('click', ()=>switchTo(t.dataset.tab)));
 
-    // ——— balance
-    const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
-    const KEY_BAL = `tapper-count:${userId}`;
-    const KEY_INV = `inventory:${userId}`;
-    let balance = +(localStorage.getItem(KEY_BAL)||0);
-    const saveBal = ()=>localStorage.setItem(KEY_BAL, String(balance));
-    const renderBalance = ()=>balanceEl.textContent = balance;
-    renderBalance();
+  // ---- баланс
+  const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
+  const KEY_BAL = `tapper-count:${userId}`;
+  const KEY_INV = `inventory:${userId}`;
+  let balance = +(localStorage.getItem(KEY_BAL)||0);
+  const balanceEl = document.getElementById('balance');
+  const saveBal = ()=>localStorage.setItem(KEY_BAL, String(balance));
+  const renderBalance = ()=>balanceEl.textContent = balance;
+  renderBalance();
 
-    // ——— TAP only
-    const catA = document.getElementById('cat-a');
-    const catB = document.getElementById('cat-b');
-    let flip=false;
-    tapBtn.addEventListener('click', (ev)=>{
-      spawnSparks(ev);
-      balance++; saveBal(); renderBalance();
-      flip=!flip; catA.style.opacity=flip?0:1; catB.style.opacity=flip?1:0;
-    });
+  // ---- верхние кнопки
+  const resetBtn = document.getElementById('reset-btn');
+  const backBtn  = document.getElementById('back-cases');
+  resetBtn.addEventListener('click', ()=>{
+    if (tg?.showPopup){
+      tg.showPopup({title:'Обнуление',message:'Сбросить баланс?',buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}]},
+        id=>{ if(id==='yes'){ balance=0; saveBal(); renderBalance(); }});
+    } else if (confirm('Сбросить баланс?')){ balance=0; saveBal(); renderBalance(); }
+  });
 
-    resetBtn.addEventListener('click', ()=>{
-      if (tg?.showPopup){
-        tg.showPopup({title:'Обнуление',message:'Сбросить баланс?',buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}]},
-          (id)=>{ if(id==='yes'){ balance=0; saveBal(); renderBalance(); }});
-      } else if (confirm('Сбросить баланс?')){ balance=0; saveBal(); renderBalance(); }
-    });
-
-    function spawnSparks(ev){
-      const r = tapBtn.getBoundingClientRect();
-      const cx = r.left + r.width/2, cy = r.top + r.height/2;
-      const color = getComputedStyle(tapBtn).backgroundColor || '#fff';
-      for(let i=0;i<18;i++){
-        const s=document.createElement('span'); s.className='spark';
-        const a=(Math.PI*2)*(i/18)+(Math.random()*0.5), d=40+Math.random()*70;
-        s.style.left=cx+'px'; s.style.top=cy+'px';
-        s.style.setProperty('--tx', Math.cos(a)*d+'px');
-        s.style.setProperty('--ty', Math.sin(a)*d+'px');
-        s.style.setProperty('--rot', (a*180/Math.PI + (Math.random()*40-20))+'deg');
-        s.style.setProperty('--dur', (500+Math.random()*500)+'ms');
-        s.style.color=color; fxLayer.appendChild(s);
-        s.addEventListener('animationend', ()=>s.remove());
-      }
+  // ---- TAP (только кот + кнопка)
+  const tapBtn  = document.getElementById('hello-btn');
+  const fxLayer = document.getElementById('fx-layer');
+  const catA = document.getElementById('cat-a');
+  const catB = document.getElementById('cat-b');
+  let flip=false;
+  tapBtn.addEventListener('click',(ev)=>{
+    spawnSparks(ev);
+    balance++; saveBal(); renderBalance();
+    flip=!flip; catA.style.opacity=flip?0:1; catB.style.opacity=flip?1:0;
+  });
+  function spawnSparks(ev){
+    const r=tapBtn.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    const color=getComputedStyle(tapBtn).backgroundColor||'#fff';
+    for(let i=0;i<18;i++){
+      const s=document.createElement('span'); s.className='spark';
+      const a=(Math.PI*2)*(i/18)+(Math.random()*0.5), d=40+Math.random()*70;
+      s.style.left=cx+'px'; s.style.top=cy+'px';
+      s.style.setProperty('--tx', Math.cos(a)*d+'px');
+      s.style.setProperty('--ty', Math.sin(a)*d+'px');
+      s.style.setProperty('--rot',(a*180/Math.PI + (Math.random()*40-20))+'deg');
+      s.style.setProperty('--dur',(500+Math.random()*500)+'ms'); s.style.color=color;
+      fxLayer.appendChild(s); s.addEventListener('animationend',()=>s.remove());
     }
+  }
 
-    // ——— CASE
-    const casesList   = document.getElementById('cases-list');
-    const caseCard    = document.getElementById('case-card');
-    const openView    = document.getElementById('case-open-view');
-    const casePreview = document.getElementById('case-preview');
-    const caseOpen    = document.getElementById('case-open');
-    const actions     = document.getElementById('case-actions');
-    const sellBtn     = document.getElementById('sell-btn');
-    const keepBtn     = document.getElementById('keep-btn');
-    const reel        = document.getElementById('reel');
-    const track       = document.getElementById('reel-track');
+  // ---- CASE
+  const tabCase    = views['1'];
+  const casesList  = document.getElementById('cases-list');
+  const caseCard   = document.getElementById('case-card');
+  const openView   = document.getElementById('case-open-view');
+  const casePreview= document.getElementById('case-preview');
+  const caseOpen   = document.getElementById('case-open');
+  const actions    = document.getElementById('case-actions');
+  const sellBtn    = document.getElementById('sell-btn');
+  const keepBtn    = document.getElementById('keep-btn');
+  const dropsEl    = document.getElementById('drops');
+  const reel       = document.getElementById('reel');
+  const track      = document.getElementById('reel-track');
 
-    const ITEMS = [
-      { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
-      { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
-      { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
-    ];
-    let selectedCost=null, spinning=false, lastWin=null;
+  const ITEMS = [
+    { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
+    { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
+    { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
+  ];
+  renderDrops();
 
-    function openCase(){
-      selectedCost = 50;
-      casesList.style.display='none';
-      openView.classList.add('is-active');
-      ensureBackVisibility();
-      caseOpen.disabled=false;
-      caseOpen.textContent=`Открыть — ${selectedCost} Taps`;
-      actions.classList.remove('is-active'); lastWin=null;
-      track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
-      track.style.transition='none'; track.style.transform='translateX(0)';
-    }
-    caseCard?.addEventListener('click', openCase);
-    caseCard?.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCase(); }});
-    backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
+  let selectedCost=null, spinning=false, lastWin=null;
 
-    function resetCaseView(){
-      openView.classList.remove('is-active');
-      casesList.style.display=''; backBtn.style.display='none';
-      selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null;
-      track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
-    }
-    function ensureBackVisibility(){ backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none'; }
+  function openCase(){
+    selectedCost = 50;
+    tabCase.scrollTo({top:0, behavior:'auto'});               // всегда вверху
+    casesList.style.display='none';
+    openView.classList.add('is-active'); openView.setAttribute('aria-hidden','false');
+    ensureBackVisibility();
+    caseOpen.disabled=false;
+    caseOpen.textContent=`Открыть — ${selectedCost} Taps`;
+    actions.classList.remove('is-active'); lastWin=null;
+    track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    track.style.transition='none'; track.style.transform='translateX(0)';
+  }
+  caseCard?.addEventListener('click', openCase);
+  caseCard?.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCase(); }});
 
-    caseOpen.addEventListener('click', ()=>{
-      if (spinning) return;
-      if (!selectedCost) selectedCost = 50;
-      if (balance < selectedCost){ tg?.showAlert?.('Недостаточно тапов'); return; }
-      spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
-      balance-=selectedCost; saveBal(); renderBalance();
+  backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
+  function resetCaseView(){
+    openView.classList.remove('is-active'); openView.setAttribute('aria-hidden','true');
+    casesList.style.display=''; backBtn.style.display='none';
+    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null;
+    track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+  }
+  function ensureBackVisibility(){ backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none'; }
 
-      const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
-      lastWin = prize;
-      buildTrackWithWin(prize);
+  caseOpen.addEventListener('click', ()=>{
+    if (spinning) return;
+    if (!selectedCost) selectedCost = 50;
+    if (balance < selectedCost){ tg?.showAlert?.('Недостаточно тапов'); return; }
+    spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
+    balance-=selectedCost; saveBal(); renderBalance();
 
-      casePreview.classList.add('hide');
-      setTimeout(()=>{ reel.classList.add('visible'); }, 100);
+    const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+    lastWin = prize;
+    buildTrackWithWin(prize);
 
+    casePreview.classList.add('hide');
+    setTimeout(()=>{ reel.classList.add('visible'); }, 100);
+
+    requestAnimationFrame(()=>{
+      const first = track.querySelector('.card');
+      const w = first ? first.getBoundingClientRect().width : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 160;
+      const center = (reel.clientWidth - w)/2;
+      const span = ITEMS.length, mid = Math.floor(span/2), rep=4;
+      const idx = (rep-1)*span + mid;
+      const off = idx*w - center;
+
+      track.style.transition='none'; track.style.transform='translateX(0px)';
+      void track.offsetWidth;
       requestAnimationFrame(()=>{
-        const first = track.querySelector('.card');
-        const w = first ? first.getBoundingClientRect().width : 156;
-        const center = (reel.clientWidth - w)/2;
-        const span = ITEMS.length, mid = Math.floor(span/2), rep=4;
-        const idx = (rep-1)*span + mid;
-        const off = idx*w - center;
-
-        track.style.transition='none'; track.style.transform='translateX(0px)';
-        void track.offsetWidth;
-        requestAnimationFrame(()=>{
-          track.style.transition='transform 2500ms cubic-bezier(0.06,0.8,0.1,1)';
-          track.style.transform=`translateX(${-off}px)`;
-          track.addEventListener('transitionend', ()=>{
-            highlightWin(idx);
-            spinning=false; caseOpen.disabled=false;
-            actions.classList.add('is-active');
-            sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
-          }, {once:true});
-        });
+        /* 7.5s — в 3 раза дольше прежнего */
+        track.style.transition='transform 7500ms cubic-bezier(0.06, 0.8, 0.1, 1)';
+        track.style.transform=`translateX(${-off}px)`;
+        track.addEventListener('transitionend', ()=>{
+          highlightWin(idx);
+          spinning=false; caseOpen.disabled=false;
+          actions.classList.add('is-active');
+          sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
+        }, {once:true});
       });
     });
+  });
 
-    function buildTrackWithWin(win){
-      track.innerHTML='';
-      const span=ITEMS.length, mid=Math.floor(span/2), rep=4;
-      for(let r=0;r<rep;r++){
-        const arr=shuffle(ITEMS.slice());
-        if(r===rep-1){
-          const i=arr.findIndex(x=>x.key===win.key);
-          if(i!==-1){ const t=arr[mid]; arr[mid]=arr[i]; arr[i]=t; }
-        }
-        for(const it of arr){
-          const el=document.createElement('div'); el.className='card';
-          const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
-          const lab=document.createElement('div'); lab.className='label'; lab.textContent=it.name;
-          img.addEventListener('error',()=>img.style.opacity=.4);
-          el.appendChild(img); el.appendChild(lab); track.appendChild(el);
-        }
+  function buildTrackWithWin(win){
+    track.innerHTML='';
+    const span=ITEMS.length, mid=Math.floor(span/2), rep=4;
+    for(let r=0;r<rep;r++){
+      const arr=shuffle(ITEMS.slice());
+      if(r===rep-1){
+        const i=arr.findIndex(x=>x.key===win.key);
+        if(i!==-1){ const t=arr[mid]; arr[mid]=arr[i]; arr[i]=t; }
+      }
+      for(const it of arr){
+        const el=document.createElement('div'); el.className='card';
+        const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
+        const lab=document.createElement('div'); lab.className='label'; lab.textContent=it.name;
+        img.addEventListener('error',()=>img.style.opacity=.4);
+        el.appendChild(img); el.appendChild(lab); track.appendChild(el);
       }
     }
-    function highlightWin(i){ const a=[...track.children]; a.forEach(e=>e.classList.remove('win')); a[i]?.classList.add('win'); }
-    function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  }
+  function highlightWin(i){ const a=[...track.children]; a.forEach(e=>e.classList.remove('win')); a[i]?.classList.add('win'); }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 
-    // ——— INVENTORY
-    const invGrid   = document.getElementById('inv-grid');
-    const modal     = document.getElementById('modal');
-    const modalImg  = document.getElementById('modal-img');
-    const modalTitle= document.getElementById('modal-title');
-    const modalPrice= document.getElementById('modal-price');
-    const modalSell = document.getElementById('modal-sell');
-    const modalClose= document.getElementById('modal-close');
-
-    const getInv = ()=>{ try{return JSON.parse(localStorage.getItem(KEY_INV)||'[]');}catch(_){return []} };
-    const setInv = v => { localStorage.setItem(KEY_INV, JSON.stringify(v)); };
-    const addToInventory = it => { const arr=getInv(); arr.push({...it,id:Date.now().toString(36)}); setInv(arr); };
-    const removeFromInventory = id => setInv(getInv().filter(x=>x.id!==id));
-
-    function renderInventory(){
-      const inv=getInv(); invGrid.innerHTML='';
-      if(inv.length===0) return;
-      for(const it of inv){
-        const card=document.createElement('div'); card.className='inv-card';
-        card.innerHTML=`<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
-        card.querySelector('img').addEventListener('error',e=>e.target.style.opacity=.4);
-        card.addEventListener('click',()=>openModal(it));
-        invGrid.appendChild(card);
-      }
+  function renderDrops(){
+    dropsEl.innerHTML='';
+    for(const it of ITEMS){
+      const d=document.createElement('div'); d.className='drop';
+      d.innerHTML = `<img src="${it.src}" alt=""><div class="t">${it.name}</div><div class="p">${it.price} Taps</div>`;
+      const img=d.querySelector('img'); img.addEventListener('error',()=>img.style.opacity=.4);
+      dropsEl.appendChild(d);
     }
-    function openModal(it){
-      modalImg.src=it.src; modalTitle.textContent=it.name; modalPrice.textContent=`Цена: ${it.price}`;
-      modal.classList.add('show');
-      modalSell.onclick=()=>{ balance+=it.price; saveBal(); renderBalance(); removeFromInventory(it.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`); };
-      modalClose.onclick=closeModal; modal.onclick=e=>{ if(e.target===modal) closeModal(); };
+  }
+
+  // ---- INVENTORY
+  const invGrid   = document.getElementById('inv-grid');
+  const modal     = document.getElementById('modal');
+  const modalImg  = document.getElementById('modal-img');
+  const modalTitle= document.getElementById('modal-title');
+  const modalPrice= document.getElementById('modal-price');
+  const modalSell = document.getElementById('modal-sell');
+  const modalClose= document.getElementById('modal-close');
+
+  const getInv = ()=>{ try{return JSON.parse(localStorage.getItem(KEY_INV)||'[]');}catch(_){return []} };
+  const setInv = v => { localStorage.setItem(KEY_INV, JSON.stringify(v)); };
+  const addToInventory = it => { const arr=getInv(); arr.push({...it,id:Date.now().toString(36)}); setInv(arr); };
+  const removeFromInventory = id => setInv(getInv().filter(x=>x.id!==id));
+
+  function renderInventory(){
+    const inv=getInv(); invGrid.innerHTML='';
+    if(inv.length===0) return;
+    for(const it of inv){
+      const card=document.createElement('div'); card.className='inv-card';
+      card.innerHTML=`<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
+      card.querySelector('img').addEventListener('error',e=>e.target.style.opacity=.4);
+      card.addEventListener('click',()=>openModal(it));
+      invGrid.appendChild(card);
     }
-    function closeModal(){ modal.classList.remove('show'); }
-    renderInventory();
+  }
+  function openModal(it){
+    modalImg.src=it.src; modalTitle.textContent=it.name; modalPrice.textContent=`Цена: ${it.price}`;
+    modal.classList.add('show');
+    modalSell.onclick=()=>{ balance+=it.price; saveBal(); renderBalance(); removeFromInventory(it.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`); };
+    modalClose.onclick=closeModal; modal.onclick=e=>{ if(e.target===modal) closeModal(); };
+  }
+  function closeModal(){ modal.classList.remove('show'); }
+  renderInventory();
 
-    keepBtn.addEventListener('click', ()=>{ if(!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
-    sellBtn.addEventListener('click', ()=>{ if(!lastWin) return; balance+=lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+  document.getElementById('keep-btn').addEventListener('click', ()=>{ if(!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
+  document.getElementById('sell-btn').addEventListener('click', ()=>{ if(!lastWin) return; balance+=lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
 
-  })();
-  </script>
+  function ensureBackVisibility(){ backBtn.style.display = document.getElementById('case-open-view').classList.contains('is-active') ? 'inline-block' : 'none'; }
+})();
+</script>
 </body>
 </html>
