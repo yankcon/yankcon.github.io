@@ -3,154 +3,162 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини‑апп — Tap + Case + Инвентарь (v25)</title>
+  <title>Мини-апп — Tap + Case + Инвентарь (v26)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root {
-      --gap: 18px;
-      --bg1: #0f0f16;          /* фон */
-      --bg2: #15182b;
-      --fg: #eaeaea;
-      --accent: #ff3b30;       /* TAP */
-      --brand1: #7c3aed;       /* фиолетово‑розовые градиенты под кейсы */
-      --brand2: #ff3b81;
-      --glass: rgba(255,255,255,.06);
-      --glass-border: rgba(255,255,255,.22);
-      --card-w: 156px;         /* ширина карточки в рулетке с фото */
-      --seg-h: 54px;           /* высота нижней панели‑сегментов */
-      --pill: linear-gradient(135deg, #ffd85a, #ffb300);
+    :root{
+      --gap:18px;
+      --bg1:#0f0f16; --bg2:#15182b; --fg:#eaeaea;
+      --accent:#ff3b30;
+      --brand1:#7c3aed; --brand2:#ff3b81;
+      --glass:rgba(255,255,255,.06); --glass-border:rgba(255,255,255,.22);
+      --card-w:156px; --seg-h:54px;
+      --pill:linear-gradient(135deg,#ffd85a,#ffb300);
     }
-    html, body { height: 100%; margin: 0; }
-    * { -webkit-tap-highlight-color: transparent; }
-    body {
-      display: block; color: var(--fg);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      user-select: none; overflow: hidden; position: relative;
-      background: radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
-                  radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
-                  linear-gradient(180deg, var(--bg1), var(--bg2));
+    html,body{height:100%;margin:0}
+    *{-webkit-tap-highlight-color:transparent}
+    body{
+      display:block;color:var(--fg);
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      user-select:none;overflow:hidden;position:relative;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
+        radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
     }
 
-    /* «валюта» */
-    #wallet { position: fixed; top: 10px; right: 10px; z-index: 30; display: inline-flex; align-items: center; gap: 8px;
-              padding: 8px 12px; font-size: 14px; background: var(--glass); border: 1px solid var(--glass-border);
-              border-radius: 12px; backdrop-filter: blur(4px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
-    #wallet img { display: block; width: 22px; height: 22px; object-fit: contain; }
-    #balance { font-weight: 800; letter-spacing: .2px; }
+    /* баланс */
+    #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
+      border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    #wallet img{width:22px;height:22px;object-fit:contain;display:block}
+    #balance{font-weight:800;letter-spacing:.2px}
 
-    /* кнопки сверху */
-    #reset-btn, #back-cases {
-      position: fixed; left: 10px; z-index: 30;
-      padding: 8px 12px; font-size: 12px; letter-spacing: .3px;
-      color: var(--fg); background: var(--glass);
-      border: 1px solid var(--glass-border); border-radius: 12px;
-      backdrop-filter: blur(4px); cursor: pointer; outline: none; -webkit-appearance: none;
-      transition: opacity .2s ease, transform .05s ease;
+    /* верхние кнопки */
+    #reset-btn,#back-cases{
+      position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
+      background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
+      cursor:pointer;outline:none;transition:opacity .2s ease,transform .05s ease
     }
-    #reset-btn { top: 10px; }
-    #back-cases { top: 44px; display: none; }
-    #reset-btn:active, #back-cases:active { transform: translateY(1px); }
+    #reset-btn{top:10px}
+    #back-cases{top:44px;display:none}
+    #reset-btn:active,#back-cases:active{transform:translateY(1px)}
 
-    /* слой для искр */
-    #fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+    /* искры */
+    #fx-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+    .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
+      transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
+    @keyframes pop{
+      80%{opacity:1}
+      100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}
+    }
 
-    /* Контент с отступом под нижнюю панель */
-    main { width: 100%; max-width: 100%; padding: 16px 12px calc(var(--seg-h) + env(safe-area-inset-bottom, 0)); box-sizing: border-box; height: calc(100dvh - var(--seg-h)); overflow-y: auto; }
+    /* общий контент: высота экрана минус панель, без скролла (скролл задаём на нужных вкладках) */
+    main{
+      width:100%;max-width:100%;
+      padding:16px 12px calc(var(--seg-h) + env(safe-area-inset-bottom,0));
+      box-sizing:border-box;
+      height:calc(100dvh - var(--seg-h));
+      overflow:hidden; /* по умолчанию нет скролла — как нужно для TAP */
+    }
+    .view{display:none;gap:var(--gap)}
+    .view.is-active{display:grid}
 
-    .view { display: none; gap: var(--gap); justify-items: center; align-content: start; }
-    .view.is-active { display: grid; }
+    /* TAP — строго по центру, без прокрутки */
+    #tab-earn{
+      width:100%;height:100%;
+      display:grid;place-items:center; /* центр вертикаль/горизонт */
+      overflow:hidden;
+    }
+    .tap-wrap{position:relative}
+    .tap-cat{position:absolute;left:50%;transform:translateX(-50%) translateY(-10px);bottom:100%;height:90px;pointer-events:none}
+    .tap-cat img{position:absolute;left:50%;transform:translateX(-50%);top:0;height:90px;transition:opacity .08s ease}
+    #cat-a{opacity:1} #cat-b{opacity:0}
+    .btn{font-size:clamp(22px,5vw,40px);letter-spacing:1px;text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);transition:transform .06s ease,filter .2s ease}
+    .btn:active{transform:translateY(1px) scale(.995)}
 
-    /* TAP */
-    .tap-wrap { position: relative; margin-top: 0; }
-    .tap-cat { position: absolute; left: 50%; transform: translateX(-50%) translateY(-10px); bottom: 100%; height: 90px; pointer-events: none; }
-    .tap-cat img { position: absolute; left: 50%; transform: translateX(-50%); top: 0; height: 90px; transition: opacity .08s ease; }
-    #cat-a { opacity: 1; }
-    #cat-b { opacity: 0; }
+    /* общие кнопки */
+    .btn-primary{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
+    .btn-secondary{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,#6b7280,#4b5563)}
+    .btn-primary[disabled]{opacity:.5;cursor:not-allowed}
 
-    .btn { font-size: clamp(22px, 5vw, 40px); letter-spacing: 1px; text-transform: uppercase; padding: 22px 46px; border: 0; border-radius: 18px; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--accent), #ff6a55); box-shadow: 0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25); transition: transform .06s ease, filter .2s ease; }
-    .btn:active { transform: translateY(1px) scale(0.995); }
+    /* нижняя панель */
+    .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:stretch;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.75) 100%);border-top:1px solid var(--glass-border)}
+    .seg{display:grid;place-items:center;font-size:12px;letter-spacing:.3px;color:#cfd3ff;background:rgba(255,255,255,.04)}
+    .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
+    .seg.is-active{color:#fff;background:rgba(255,255,255,.12);box-shadow:inset 0 2px rgba(255,255,255,.25)}
+    footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
 
-    /* Кнопки общего стиля */
-    .btn-primary { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
-    .btn-secondary { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, #6b7280, #4b5563); }
-    .btn-primary[disabled] { opacity: .5; cursor: not-allowed; }
+    /* CASE (список) — прокручиваемый, один кейс по центру, ближе к верху */
+    #tab-1{
+      width:100%;height:100%;
+      overflow:auto; /* эта вкладка может скроллиться */
+      display:grid;justify-items:center;align-content:start;
+      padding-top:8vh; /* чуть ближе к верху */
+    }
+    .cases-list{width:100%;display:grid;grid-template-columns:1fr;justify-items:center;gap:14px}
+    .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
+    .case-card img{width:200px;height:200px;object-fit:cover;border-radius:12px}
+    .case-title{font-weight:800}
+    .case-card .price{font-weight:800;font-size:16px;opacity:.85}
 
-    /* НИЖНЕЕ МЕНЮ: сегменты до краёв */
-    .segbar { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; height: calc(var(--seg-h) + env(safe-area-inset-bottom, 0)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: stretch; background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.75) 100%); border-top: 1px solid var(--glass-border); }
-    .seg { position: relative; display: grid; place-items: center; font-size: 12px; letter-spacing: .3px; color: #cfd3ff; background: rgba(255,255,255,.04); }
-    .seg + .seg { border-left: 1px solid rgba(255,255,255,.08); }
-    .seg.is-active { color: #fff; background: rgba(255,255,255,.12); box-shadow: inset 0 2px rgba(255,255,255,.25); }
+    /* ВНУТРИ КЕЙСА — сцена 220x220, по центру, вертикально в третьей четверти */
+    .case-open-view{
+      width:100%;height:100%;
+      display:none; /* включаю на входе */
+      grid-auto-rows:auto;justify-items:center;align-content:start;
+      overflow:hidden; /* без скролла на экране открытия */
+      padding-top:max(0px, calc(62.5vh - 160px)); /* центр сцены ≈ третья четверть */
+      gap:12px;
+    }
+    .case-open-view.is-active{display:grid}
+    .case-stage{position:relative;width:220px;height:220px;border-radius:14px}
+    .case-preview{position:absolute;inset:0;border-radius:14px;overflow:hidden;opacity:1;transition:opacity 400ms ease}
+    .case-preview.hide{opacity:0}
+    .case-preview img{width:100%;height:100%;object-fit:cover}
 
-    footer { position: fixed; bottom: calc(var(--seg-h) + 4px + env(safe-area-inset-bottom, 0)); left: 8px; font-size: 12px; opacity:.45; z-index: 16; }
+    /* рулетка поверх превью, на том же месте */
+    .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 500ms ease}
+    .reel.visible{opacity:1}
+    .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
+    .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translateZ(0)}
+    .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:6px}
+    .card img{width:calc(var(--card-w) - 6px);height:160px;object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+    .card .label{font-size:13px;opacity:.75;margin-bottom:8px}
+    .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5);opacity:1}
 
-    /* кейсы — список с одним кейсом */
-    .cases-list { width: 100%; display: grid; grid-template-columns: 1fr; justify-items: center; gap: 14px; }
-    .case-card { display: grid; gap: 10px; justify-items: center; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(255,59,129,.12)); border: 1px solid var(--glass-border); box-shadow: inset 0 1px rgba(255,255,255,.08); cursor: pointer; }
-    .case-card img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
-    .case-title { font-weight: 800; }
-    .case-card .price { font-weight: 800; font-size: 16px; opacity:.85; }
+    .open-btn{padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
 
-    /* экран открытия кейса */
-    .case-open-view { width: 100%; display: none; gap: 12px; justify-content: flex-start; align-items: center; flex-direction: column; }
-    .case-open-view.is-active { display: grid; }
+    .actions{display:none;gap:10px;justify-content:center}
+    .actions.is-active{display:grid;grid-auto-flow:column}
+    .a-btn{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer}
+    .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
+    .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
 
-    /* превью кейса (исчезает при старте) */
-    .case-preview { position: absolute; inset: 0; border-radius: 14px; overflow: hidden; opacity: 1; transition: opacity 400ms ease; }
-    .case-preview.hide { opacity: 0; }
-    .case-preview img { width: 100%; height: 100%; object-fit: cover; }
+    /* список предметов — ниже, 2 в ряд, отдельный блок */
+    .pricelist{width:100%;max-width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:320px;overflow-y:auto;padding:4px 4px 10px;margin-top:12px}
+    .pricelist .mini{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
+    .pricelist .mini img{width:100%;height:90px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
+    .mini .t{font-size:12px;opacity:.9;text-align:center}
+    .mini .p{font-weight:800}
 
-    /* РУЛЕТКА С ФОТО */
-    .reel { position: absolute; inset: 0; opacity: 0; overflow: hidden; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.06); transition: opacity 500ms ease; }
-    .reel.visible { opacity: 1; }
-    .reel::after { content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; transform:translateX(-1px); background: linear-gradient(180deg, transparent, rgba(255,255,255,.75), transparent); }
-    .reel-track { display: flex; align-items: center; height: 100%; will-change: transform; transform: translateZ(0); }
-    .card { flex: 0 0 var(--card-w); width: var(--card-w); height: 100%; display: grid; grid-template-rows: 1fr auto; align-items: stretch; justify-items: center; gap: 6px; }
-    .card img { width: calc(var(--card-w) - 6px); height: 160px; object-fit: contain; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
-    .card .label { font-size: 13px; opacity:.75; margin-bottom: 8px; }
-    .card.win .label { color:#ffd400; text-shadow:0 0 14px rgba(255,212,0,.5); opacity:1; }
+    /* инвентарь (как раньше) */
+    #tab-2{width:100%;height:100%;overflow:auto;display:grid;align-content:start}
+    .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+    .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
+    .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+    .inv-card .title{font-size:12px;opacity:.85}
 
-    /* Кнопка «Открыть» в общем стиле */
-    .open-btn { padding: 14px 22px; border-radius: 14px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
-    .open-btn { padding: 14px 22px; border-radius: 14px; border: 0; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--brand1), var(--brand2)); box-shadow: 0 12px 28px rgba(124,58,237,.32); }
-
-    .actions { display:none; gap:10px; justify-content: center; }
-    .actions.is-active { display:grid; grid-auto-flow: column; }
-    .a-btn { padding: 12px 18px; border-radius: 12px; border: 0; color: #fff; cursor: pointer; }
-    .sell { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
-    .keep { background: linear-gradient(135deg, #22c55e, #16a34a); }
-
-    /* Плашка цены выигрыша */
-    /* .win-price удалена — цена теперь в кнопках */
-    .win-price.show { display:inline-block; }
-
-    /* Лист с перечнем всех предметов */
-    .pricelist { width: 100%; max-width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; max-height: 320px; overflow-y: auto; padding: 4px 4px 10px; margin-top: 12px; }
-    .pricelist .mini { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
-    .pricelist .mini img { width: 100%; height: 90px; object-fit: contain; background: rgba(0,0,0,.15); border:1px solid var(--glass-border); border-radius: 8px; }
-    .mini .t { font-size: 12px; opacity:.9; text-align:center; }
-    .mini .p { font-weight: 800; }
-
-    /* Инвентарь */
-    .inv-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-    .inv-card { background: rgba(255,255,255,.06); border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px; display:grid; gap:6px; justify-items:center; }
-    .inv-card img { width: 100%; height: 110px; object-fit: contain; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
-    .inv-card .title { font-size: 12px; opacity:.85 }
-
-    /* Модалка */
-    .modal { position: fixed; inset: 0; display: none; z-index: 40; }
-    .modal.show { display: grid; place-items: center; }
-    .modal::before { content:""; position: absolute; inset:0; background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
-    .modal-card { position: relative; z-index:1; width: min(92vw, 420px); background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid var(--glass-border); border-radius: 14px; padding: 14px; display:grid; gap:10px; }
-    .modal-card img { width: 100%; height: 220px; object-fit: contain; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(0,0,0,.15); }
-    .modal-title { font-weight: 800; }
-    .modal-actions { display: grid; grid-auto-flow: column; gap: 10px; }
-    .modal .sell { background: var(--pill); color:#3b2c00; border: 0; box-shadow: 0 10px 24px rgba(255,184,0,.25); }
-    .modal .close { background: var(--glass); color: var(--fg); border: 1px solid var(--glass-border); box-shadow: 0 8px 20px rgba(0,0,0,.25); }
-    /* Сцена кейса: фиксированная область, где превью и рулетка совпадают по месту */
-    .case-stage { position: relative; width: 220px; height: 220px; border-radius: 14px; }
-
-    /* Центр экрана для TAP */
-    #tab-earn.view { min-height: calc(100dvh - var(--seg-h) - 24px); display: grid; place-items: center; }
+    /* модалка */
+    .modal{position:fixed;inset:0;display:none;z-index:40}
+    .modal.show{display:grid;place-items:center}
+    .modal::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+    .modal-card{position:relative;z-index:1;width:min(92vw,420px);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));border:1px solid var(--glass-border);border-radius:14px;padding:14px;display:grid;gap:10px}
+    .modal-card img{width:100%;height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+    .modal-title{font-weight:800}
+    .modal-actions{display:grid;grid-auto-flow:column;gap:10px}
+    .modal .sell{background:var(--pill);color:#3b2c00;border:0;box-shadow:0 10px 24px rgba(255,184,0,.25)}
+    .modal .close{background:var(--glass);color:var(--fg);border:1px solid var(--glass-border);box-shadow:0 8px 20px rgba(0,0,0,.25)}
   </style>
 </head>
 <body>
@@ -164,7 +172,7 @@
   <div id="fx-layer"></div>
 
   <main id="views">
-    <!-- TAB: Tap -->
+    <!-- TAP -->
     <section id="tab-earn" class="view is-active" role="region" aria-labelledby="tabbtn-earn">
       <div class="tap-wrap">
         <div class="tap-cat">
@@ -175,9 +183,8 @@
       </div>
     </section>
 
-    <!-- TAB: Case -->
+    <!-- CASE (list) -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
-      <!-- один кейс стоимостью 50, с картинкой -->
       <div id="cases-list" class="cases-list">
         <div class="case-card" id="case-card" role="button" tabindex="0" aria-label="Открыть кейс">
           <div class="case-title">Сезонный Рома</div>
@@ -185,34 +192,35 @@
           <div class="price">50 Taps</div>
         </div>
       </div>
-      <!-- экран открытия -->
+
+      <!-- Внутри кейса -->
       <section id="case-open-view" class="case-open-view">
         <div class="case-stage" id="case-stage">
           <div id="case-preview" class="case-preview"><img src="case.png" alt="Кейс"></div>
           <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
         </div>
         <button id="case-open" class="open-btn">Открыть — 50 Taps</button>
+
         <div class="actions" id="case-actions">
           <button class="a-btn sell btn-primary" id="sell-btn">Продать</button>
           <button class="a-btn keep btn-secondary" id="keep-btn">Сохранить</button>
         </div>
+
         <div class="pricelist" id="pricelist"></div>
       </section>
     </section>
 
-    <!-- TAB: Inventory -->
+    <!-- INVENTORY -->
     <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
       <div class="inv-grid" id="inv-grid"></div>
       <div id="empty-inv" class="case-card" style="display:none;">Инвентарь пуст</div>
     </section>
 
-    <!-- TAB: 3 (пусто на будущее) -->
     <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
       <p class="case-card">Раздел 3 (скоро)</p>
     </section>
   </main>
 
-  <!-- Сегментированная нижняя панель до краёв экрана -->
   <nav class="segbar" role="tablist" aria-label="Навигация по разделам">
     <div class="seg is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Tap</div>
     <div class="seg" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">Case</div>
@@ -220,7 +228,7 @@
     <div class="seg" id="tabbtn-3" role="tab" aria-controls="tab-3" data-tab="3">3</div>
   </nav>
 
-  <!-- Модальное окно для предмета из инвентаря -->
+  <!-- modal -->
   <div id="modal" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true">
       <img id="modal-img" alt="item" />
@@ -233,219 +241,279 @@
     </div>
   </div>
 
-  <footer>v25</footer>
+  <footer>v26</footer>
 
   <script>
-    (function () {
-      const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
-      if (tg) { tg.ready(); tg.expand(); }
+  (function(){
+    const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
+    if (tg){ tg.ready(); tg.expand(); }
 
-      const tapBtn   = document.getElementById('hello-btn');
-      const fxLayer  = document.getElementById('fx-layer');
-      const resetBtn = document.getElementById('reset-btn');
-      const backBtn  = document.getElementById('back-cases');
-      const balanceEl= document.getElementById('balance');
+    // --- UI refs
+    const tapBtn   = document.getElementById('hello-btn');
+    const fxLayer  = document.getElementById('fx-layer');
+    const resetBtn = document.getElementById('reset-btn');
+    const backBtn  = document.getElementById('back-cases');
+    const balanceEl= document.getElementById('balance');
 
-      // Сегментированная навигация (до краёв)
-      const tabs = Array.from(document.querySelectorAll('.segbar .seg'));
-      const views = { earn: document.getElementById('tab-earn'), '1': document.getElementById('tab-1'), '2': document.getElementById('tab-2'), '3': document.getElementById('tab-3') };
-      function switchTo(name){
-        // визуальная активация
-        tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
-        Object.entries(views).forEach(([k, v]) => v.classList.toggle('is-active', k === name));
-        // 2) Back-кнопка показывается только на экране открытия кейса
-        ensureBackVisibility();
-        // 3) Сбросить состояние остальных разделов
-        if (name !== '1') resetCaseView();
-        if (name !== '2') closeModal(); // инвентарь — закрыть модалку
+    // tabs
+    const tabs = Array.from(document.querySelectorAll('.segbar .seg'));
+    const views = {
+      earn: document.getElementById('tab-earn'),
+      '1' : document.getElementById('tab-1'),
+      '2' : document.getElementById('tab-2'),
+      '3' : document.getElementById('tab-3')
+    };
+    function switchTo(name){
+      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab===name));
+      Object.entries(views).forEach(([k,v]) => v.classList.toggle('is-active', k===name));
+      ensureBackVisibility();
+      if (name!=='1') resetCaseView();
+      if (name!=='2') closeModal();
+      // управление скроллом по требованиям
+      // main без скролла; #tab-1 и #tab-2 сами прокручиваются, #tab-earn — нет
+    }
+    tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
+
+    // balance
+    const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
+    const STORAGE_BAL = `tapper-count:${userId}`;
+    const STORAGE_INV = `inventory:${userId}`;
+    let balance = 0; try{ const s=localStorage.getItem(STORAGE_BAL); if(s!=null) balance=parseInt(s,10)||0; }catch(_){}
+    renderBalance();
+    function saveBal(){ try{ localStorage.setItem(STORAGE_BAL,String(balance)); }catch(_){ } }
+    function renderBalance(){ balanceEl.textContent = balance; }
+
+    // tap + cats
+    const catA = document.getElementById('cat-a');
+    const catB = document.getElementById('cat-b');
+    attachFallback(catA,['cat1.png','cat_1.png','catA.png']);
+    attachFallback(catB,['cat2.png','cat_2.png','catB.png']);
+    let catFlip=false;
+    tapBtn.addEventListener('click', (ev)=>{
+      spawnSparks(ev);
+      balance+=1; saveBal(); renderBalance();
+      catFlip=!catFlip; catA.style.opacity=catFlip?0:1; catB.style.opacity=catFlip?1:0;
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      if (tg?.showPopup){
+        tg.showPopup({title:'Обнуление',message:'Сбросить баланс?',buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}]},(id)=>{ if(id==='yes') doReset(); });
+      } else if (confirm('Сбросить баланс?')) doReset();
+    });
+    function doReset(){ balance=0; saveBal(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
+
+    function spawnSparks(ev){
+      const r = tapBtn.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const color = getComputedStyle(tapBtn).backgroundColor || '#fff';
+      const n=18;
+      for(let i=0;i<n;i++){
+        const s=document.createElement('span'); s.className='spark';
+        const angle=(Math.PI*2)*(i/n)+(Math.random()*0.5);
+        const dist = 40 + Math.random()*70;
+        s.style.left = cx+'px'; s.style.top = cy+'px';
+        s.style.setProperty('--tx', Math.cos(angle)*dist+'px');
+        s.style.setProperty('--ty', Math.sin(angle)*dist+'px');
+        s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20))+'deg');
+        s.style.setProperty('--dur', (500+Math.random()*500)+'ms');
+        s.style.color = color;
+        fxLayer.appendChild(s);
+        s.addEventListener('animationend', ()=> s.remove());
       }
-      tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
+    }
 
-      // Баланс
-      const userId = tg?.initDataUnsafe?.user?.id ?? 'anon';
-      const STORAGE_BAL = `tapper-count:${userId}`;
-      const STORAGE_INV = `inventory:${userId}`;
-      let balance = 0; try { const saved = localStorage.getItem(STORAGE_BAL); if (saved !== null) balance = parseInt(saved, 10) || 0; } catch(_){ }
-      renderBalance();
+    // === CASE ===
+    const casesList   = document.getElementById('cases-list');
+    const caseCard    = document.getElementById('case-card');
+    const openView    = document.getElementById('case-open-view');
+    const casePreview = document.getElementById('case-preview');
+    const caseOpen    = document.getElementById('case-open');
+    const actions     = document.getElementById('case-actions');
+    const sellBtn     = document.getElementById('sell-btn');
+    const keepBtn     = document.getElementById('keep-btn');
+    const pricelistEl = document.getElementById('pricelist');
 
-      // TAP + котики
-      const catA = document.getElementById('cat-a');
-      const catB = document.getElementById('cat-b');
-      attachFallback(catA, ['cat1.png','cat_1.png','catA.png']);
-      attachFallback(catB, ['cat2.png','cat_2.png','catB.png']);
-      let catFlip = false;
+    const reel = document.getElementById('reel');
+    const track= document.getElementById('reel-track');
 
-      tapBtn.addEventListener('click', (ev) => { 
-        spawnSparks(ev); 
-        balance += 1; saveBal(); renderBalance();
-        catFlip = !catFlip; // анимация котика
-        catA.style.opacity = catFlip ? 0 : 1;
-        catB.style.opacity = catFlip ? 1 : 0;
-      });
+    const ITEMS = [
+      { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
+      { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
+      { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
+    ];
+    renderPriceList();
 
-      resetBtn.addEventListener('click', () => { if (tg && typeof tg.showPopup === 'function') { tg.showPopup({ title:'Обнуление', message:'Сбросить баланс?', buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}] }, (id)=>{ if(id==='yes') doReset(); }); } else if (confirm('Сбросить баланс?')) doReset(); });
-      function doReset(){ balance = 0; saveBal(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
-      function saveBal(){ try { localStorage.setItem(STORAGE_BAL, String(balance)); } catch(_){} }
-      function renderBalance(){ balanceEl.textContent = balance; }
+    let selectedCost=null, spinning=false, lastWin=null;
 
-      function spawnSparks(ev){ const rect = tapBtn.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2; const color = getComputedStyle(tapBtn).backgroundColor || '#fff'; const n = 18; for (let i=0;i<n;i++){ const s = document.createElement('span'); s.className = 'spark'; const angle = (Math.PI * 2) * (i/n) + (Math.random()*0.5); const dist = 40 + Math.random()*70; s.style.left = cx + 'px'; s.style.top = cy + 'px'; s.style.setProperty('--tx', Math.cos(angle)*dist + 'px'); s.style.setProperty('--ty', Math.sin(angle)*dist + 'px'); s.style.setProperty('--rot', (angle*180/Math.PI + (Math.random()*40-20)) + 'deg'); s.style.setProperty('--dur', (500 + Math.random()*500) + 'ms'); s.style.color = color; fxLayer.appendChild(s); s.addEventListener('animationend', ()=> s.remove()); } }
+    function openCase(){
+      selectedCost = 50;
+      casesList.style.display='none';
+      openView.classList.add('is-active');
+      ensureBackVisibility();
+      caseOpen.disabled=false;
+      caseOpen.textContent = `Открыть — ${selectedCost} Taps`;
+      actions.classList.remove('is-active'); lastWin=null;
+      track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+      track.style.transition='none'; track.style.transform='translateX(0)';
+    }
+    if (caseCard){
+      caseCard.addEventListener('click', openCase);
+      caseCard.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCase(); }});
+    }
+    casesList?.addEventListener('click', e=>{ if (e.target.closest('#case-card')) openCase(); });
 
-      // === КЕЙСЫ ===
-      const casesList = document.getElementById('cases-list');
-      const caseCard  = document.getElementById('case-card');
-      const openView  = document.getElementById('case-open-view');
-      const casePreview = document.getElementById('case-preview');
-      const caseOpen  = document.getElementById('case-open');
-      const actions   = document.getElementById('case-actions');
-      const sellBtn   = document.getElementById('sell-btn');
-      const keepBtn   = document.getElementById('keep-btn');
-      const pricelist = document.getElementById('pricelist');
-      const reel      = document.getElementById('reel');
-      const track     = document.getElementById('reel-track');
+    backBtn.addEventListener('click', ()=>{ if (spinning) return; resetCaseView(); });
 
-      const ITEMS = [
-        { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
-        { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
-        { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
-      ];
+    function resetCaseView(){
+      openView.classList.remove('is-active');
+      casesList.style.display='';
+      backBtn.style.display='none';
+      selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null;
+      track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    }
+    function ensureBackVisibility(){
+      backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none';
+    }
 
-      let selectedCost = null; let spinning = false; let lastWin = null;
+    caseOpen.addEventListener('click', ()=>{
+      if (spinning) return;
+      if (!selectedCost) selectedCost = 50;             // страховка
+      if (balance < selectedCost){ tg?.showAlert?.('Недостаточно тапов'); return; }
 
-      // вход в кейс по клику на карточку — восстановлено
-      const _caseCardEl = document.getElementById('case-card');
-      function openCase(){
-        selectedCost = 50; // один кейс
-        casesList.style.display = 'none';
-        openView.classList.add('is-active');
-        ensureBackVisibility();
-        if (caseOpen) { caseOpen.disabled = false; caseOpen.textContent = `Открыть — ${selectedCost} Taps`; }
-        actions.classList.remove('is-active'); lastWin = null;
-        track.innerHTML = ''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
-        track.style.transform = 'translateX(0)'; track.style.transition = 'none';
-      }
-      if (_caseCardEl) {
-        _caseCardEl.addEventListener('click', openCase);
-        _caseCardEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCase(); }});
-      }
-      // надёжное делегирование: клик по любой области карточки
-      casesList?.addEventListener('click', (e)=>{ if (e.target.closest('#case-card')) openCase(); });
+      spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active');
+      balance -= selectedCost; saveBal(); renderBalance();
 
-      
+      // равновероятный выбор
+      const rewardItem = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+      lastWin = rewardItem;
 
-      // Back из кейса
-      backBtn.addEventListener('click', () => { if (spinning) return; resetCaseView(); });
+      buildPhotoTrackWithWin(rewardItem);
 
-      function resetCaseView(){
-        openView.classList.remove('is-active');
-        casesList.style.display = '';
-        backBtn.style.display = 'none';
-        selectedCost = null; caseOpen.disabled = true; actions.classList.remove('is-active'); lastWin = null; 
-        track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
-      }
+      casePreview.classList.add('hide');
+      setTimeout(()=>{ reel.classList.add('visible'); }, 100);
 
-      function ensureBackVisibility(){
-        backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none';
-      }
+      requestAnimationFrame(()=>{
+        const firstCard = track.querySelector('.card');
+        const itemW = firstCard ? firstCard.getBoundingClientRect().width : 156;
+        const centerOffset = (reel.clientWidth - itemW)/2;
+        const span = ITEMS.length;
+        const centerIndex = Math.floor(span/2);
+        const repeatN = 4;
+        const targetIndex = (repeatN-1)*span + centerIndex;
+        const targetOffset = targetIndex * itemW - centerOffset;
 
-      caseOpen.addEventListener('click', () => {
-        if (!selectedCost || spinning) return;
-        if (balance < selectedCost) { tg?.showAlert?.('Недостаточно тапов'); return; }
-        spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active'); 
-        balance -= selectedCost; saveBal(); renderBalance();
-
-        // Случайный выигрыш среди трёх фото
-        // равновероятный выбор (1/3)
-        const rewardItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-        lastWin = rewardItem;
-
-        buildPhotoTrackWithWin(rewardItem);
-
-        // Превью плавно исчезает, рулетка проявляется
-        casePreview.classList.add('hide');
-        setTimeout(()=>{ reel.classList.add('visible'); }, 100);
-
-        requestAnimationFrame(() => {
-          // измеряем реальную ширину карточки
-          const firstCard = track.querySelector('.card');
-          const itemW = firstCard ? firstCard.getBoundingClientRect().width : 156;
-          const centerOffset = (reel.clientWidth - itemW)/2;
-          const span = ITEMS.length; // 3
-          const centerIndex = Math.floor(span/2); // 1
-          const repeatN = 4; // длиннее дорожка
-          const targetIndex = (repeatN-1)*span + centerIndex; // фиксированный путь
-          const targetOffset = targetIndex * itemW - centerOffset;
-
-          // сброс и запуск с точной длительностью 2500ms
-          track.style.transition = 'none'; track.style.transform = 'translateX(0px)'; void track.offsetWidth;
-          requestAnimationFrame(() => {
-            track.style.transition = 'transform 2500ms cubic-bezier(0.06, 0.8, 0.1, 1)';
-            track.style.transform = `translateX(${-targetOffset}px)`;
-            track.addEventListener('transitionend', () => {
-              highlightWin(targetIndex);
-              spinning = false; caseOpen.disabled = false; actions.classList.add('is-active');
-              sellBtn.textContent = `Продать — ${lastWin.price} Taps`;
-            }, { once:true });
-          });
+        track.style.transition='none';
+        track.style.transform='translateX(0px)';
+        void track.offsetWidth;
+        requestAnimationFrame(()=>{
+          track.style.transition = 'transform 2500ms cubic-bezier(0.06, 0.8, 0.1, 1)';
+          track.style.transform  = `translateX(${-targetOffset}px)`;
+          track.addEventListener('transitionend', ()=>{
+            highlightWin(targetIndex);
+            spinning=false; caseOpen.disabled=false;
+            actions.classList.add('is-active');
+            sellBtn.textContent = `Продать — ${lastWin.price} Taps`;
+          }, {once:true});
         });
       });
+    });
 
-      function buildPhotoTrackWithWin(winItem){
-        track.innerHTML = '';
-        const span = ITEMS.length; const centerIndex = Math.floor(span/2); const repeatN = 4;
-        for(let r=0; r<repeatN; r++){
-          const shuffled = shuffle(ITEMS.slice());
-          if (r === repeatN-1){
-            const idx = shuffled.findIndex(i => i.key === winItem.key);
-            if (idx !== -1){ const t = shuffled[centerIndex]; shuffled[centerIndex] = shuffled[idx]; shuffled[idx] = t; }
-          }
-          for (const it of shuffled){
-            const el = document.createElement('div'); el.className = 'card';
-            const img = document.createElement('img'); img.alt = it.name; img.src = it.src; attachFallback(img, [it.src, it.src.replace('.jpg','.jpeg'), it.src.replace('.jpg','.JPG'), it.src.replace('.jpg','.png')]);
-            const lab = document.createElement('div'); lab.className='label'; lab.textContent = it.name;
-            el.appendChild(img); el.appendChild(lab); track.appendChild(el);
-          }
+    function buildPhotoTrackWithWin(winItem){
+      track.innerHTML='';
+      const span = ITEMS.length, centerIndex = Math.floor(span/2), repeatN=4;
+      for (let r=0;r<repeatN;r++){
+        const arr = shuffle(ITEMS.slice());
+        if (r===repeatN-1){
+          const i = arr.findIndex(x=>x.key===winItem.key);
+          if (i!==-1){ const t=arr[centerIndex]; arr[centerIndex]=arr[i]; arr[i]=t; }
+        }
+        for (const it of arr){
+          const el=document.createElement('div'); el.className='card';
+          const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
+          attachFallback(img,[it.src,it.src.replace('.jpg','.jpeg'),it.src.replace('.jpg','.JPG'),it.src.replace('.jpg','.png')]);
+          const lab=document.createElement('div'); lab.className='label'; lab.textContent=it.name;
+          el.appendChild(img); el.appendChild(lab); track.appendChild(el);
         }
       }
+    }
+    function highlightWin(idx){ const items=[...track.children]; items.forEach(e=>e.classList.remove('win')); const el=items[idx]; if (el) el.classList.add('win'); }
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 
-      function highlightWin(targetIndex){ const items = Array.from(track.children); items.forEach(el => el.classList.remove('win')); const el = items[targetIndex]; if (el) el.classList.add('win'); }
-      function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-
-      // Действия после выигрыша: Продать / Сохранить
-      const invGrid = document.getElementById('inv-grid');
-      const emptyInv = document.getElementById('empty-inv');
-      const modal = document.getElementById('modal');
-      const modalImg = document.getElementById('modal-img');
-      const modalTitle = document.getElementById('modal-title');
-      const modalPrice = document.getElementById('modal-price');
-      const modalSell = document.getElementById('modal-sell');
-      const modalClose = document.getElementById('modal-close');
-
-      sellBtn.addEventListener('click', () => { if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active');  tg?.showAlert?.(`Продано: +${lastWin.price}`); });
-      keepBtn.addEventListener('click', () => { if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active');  tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); });
-
-      function getInv(){ try{ return JSON.parse(localStorage.getItem(STORAGE_INV) || '[]'); }catch(_){ return []; } }
-      function setInv(arr){ try{ localStorage.setItem(STORAGE_INV, JSON.stringify(arr)); }catch(_){} }
-      function addToInventory(item){ const inv = getInv(); inv.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,8), key:item.key, name:item.name, price:item.price, src:item.src }); setInv(inv); }
-      function removeFromInventory(id){ const inv = getInv().filter(x=>x.id!==id); setInv(inv); }
-
-      function renderInventory(){
-        const inv = getInv(); invGrid.innerHTML = '';
-        if (inv.length === 0){ emptyInv.style.display = 'grid'; return; } else { emptyInv.style.display = 'none'; }
-        for (const it of inv){ const card = document.createElement('div'); card.className = 'inv-card'; card.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`; card.querySelector('img').addEventListener('error', (e)=> e.target.style.opacity=.4); card.addEventListener('click', ()=> openModal(it)); invGrid.appendChild(card); }
+    function renderPriceList(){
+      pricelistEl.innerHTML='';
+      for (const it of ITEMS){
+        const box=document.createElement('div'); box.className='mini';
+        const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
+        attachFallback(img,[it.src,it.src.replace('.jpg','.jpeg'),it.src.replace('.jpg','.JPG'),it.src.replace('.jpg','.png')]);
+        const t=document.createElement('div'); t.className='t'; t.textContent=it.name;
+        const p=document.createElement('div'); p.className='p'; p.textContent=it.price+' Taps';
+        box.appendChild(img); box.appendChild(t); box.appendChild(p);
+        pricelistEl.appendChild(box);
       }
+    }
 
-      function openModal(item){ modalImg.src = item.src; modalTitle.textContent = item.name; modalPrice.textContent = `Цена: ${item.price}`; modal.classList.add('show'); const sellHandler = () => { balance += item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); }; const closeHandler = () => closeModal(); modalSell.onclick = sellHandler; modalClose.onclick = closeHandler; modal.onclick = (e)=>{ if(e.target===modal) closeModal(); }; }
-      function closeModal(){ modal.classList.remove('show'); }
+    // === INVENTORY ===
+    const invGrid   = document.getElementById('inv-grid');
+    const emptyInv  = document.getElementById('empty-inv');
+    const modal     = document.getElementById('modal');
+    const modalImg  = document.getElementById('modal-img');
+    const modalTitle= document.getElementById('modal-title');
+    const modalPrice= document.getElementById('modal-price');
+    const modalSell = document.getElementById('modal-sell');
+    const modalClose= document.getElementById('modal-close');
 
-      // утилита: подмена имён файла: .jpg → .jpeg → .JPG → .png, и для котиков/кейса
-      function attachFallback(img, variants){ let i = 0; img.addEventListener('error', () => { if (++i < variants.length) img.src = variants[i]; else img.style.opacity = .4; }); }
+    function getInv(){ try{return JSON.parse(localStorage.getItem(STORAGE_INV)||'[]');}catch(_){return []} }
+    function setInv(a){ try{localStorage.setItem(STORAGE_INV,JSON.stringify(a));}catch(_){ } }
+    function addToInventory(item){
+      const inv=getInv();
+      inv.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),key:item.key,name:item.name,price:item.price,src:item.src});
+      setInv(inv);
+    }
+    function removeFromInventory(id){ setInv(getInv().filter(x=>x.id!==id)); }
+    function renderInventory(){
+      const inv=getInv(); invGrid.innerHTML='';
+      if (inv.length===0){ emptyInv.style.display='grid'; return; } else emptyInv.style.display='none';
+      for (const it of inv){
+        const card=document.createElement('div'); card.className='inv-card';
+        card.innerHTML=`<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
+        card.querySelector('img').addEventListener('error',e=>e.target.style.opacity=.4);
+        card.addEventListener('click',()=>openModal(it));
+        invGrid.appendChild(card);
+      }
+    }
+    function openModal(item){
+      modalImg.src=item.src; modalTitle.textContent=item.name; modalPrice.textContent=`Цена: ${item.price}`;
+      modal.classList.add('show');
+      const sell=()=>{ balance+=item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); };
+      const close=()=>closeModal();
+      modalSell.onclick=sell; modalClose.onclick=close; modal.onclick=(e)=>{ if(e.target===modal) closeModal(); };
+    }
+    function closeModal(){ modal.classList.remove('show'); }
+    renderInventory();
 
-      // инициализация
+    // actions after spin
+    sellBtn.addEventListener('click', ()=>{
+      if (!lastWin) return;
+      balance += lastWin.price; saveBal(); renderBalance();
+      actions.classList.remove('is-active');
+      tg?.showAlert?.(`Продано: +${lastWin.price}`);
+    });
+    keepBtn.addEventListener('click', ()=>{
+      if (!lastWin) return;
+      addToInventory(lastWin);
+      actions.classList.remove('is-active');
+      tg?.showAlert?.('Сохранено в инвентарь');
       renderInventory();
+    });
 
-      // стартовый таб
-      switchTo('earn');
-    })();
+    // helpers
+    function attachFallback(img, variants){
+      let i=0; img.addEventListener('error',()=>{ if(++i<variants.length) img.src=variants[i]; else img.style.opacity=.4; });
+    }
+
+    // старт с TAP
+    switchTo('earn');
+  })();
   </script>
 </body>
 </html>
