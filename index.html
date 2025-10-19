@@ -3,34 +3,37 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v38)</title>
+<title>Mini App — Tap / Case / Inventory (v39)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Опционально: живой бэкенд. Если не нужен — оставь пустыми константы в JS ниже. -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
   :root{
-    --gap:18px;
-    --bg1:#0f0f16; --bg2:#15182b; --fg:#eaeaea;
+    --gap:18px; --bg1:#0f0f16; --bg2:#15182b; --fg:#eaeaea;
     --accent:#ff3b30; --brand1:#7c3aed; --brand2:#ff3b81;
     --glass:rgba(255,255,255,.06); --glass-border:rgba(255,255,255,.22);
     --seg-h:54px;
-    --stage-w: min(92vw, 560px);
-    --stage-h: clamp(220px, 52vw, 360px);
-    --card-w : clamp(120px, 28vw, 220px);
+    --stage-w:min(92vw,560px);
+    --stage-h:clamp(220px,52vw,360px);
+    --card-w:clamp(120px,28vw,220px);
   }
   html,body{height:100%;margin:0}
   *{-webkit-tap-highlight-color:transparent}
   body{
-    color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-    user-select:none; overflow:hidden; position:relative;
+    color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    user-select:none;overflow:hidden;position:relative;
     background:
       radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,.25), transparent 60%),
       radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
       linear-gradient(180deg,var(--bg1),var(--bg2));
   }
+  /* баланс */
   #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
     border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #wallet img{width:22px;height:22px;display:block}
   #balance{font-weight:800}
+  /* верхние кнопки */
   #reset-btn,#back-cases{
     position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
     background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
@@ -38,14 +41,16 @@
   }
   #reset-btn{top:10px}
   #back-cases{top:44px;display:none}
+  /* FX */
   #fx-layer{position:fixed;inset:0;pointer-events:none;z-index:5}
   .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
     transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
   @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
+  /* нижняя панель */
   .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
     display:grid;grid-template-columns:repeat(4,1fr);
-    background:rgba(10,11,18,.68); backdrop-filter: blur(8px) saturate(120%);
-    border-top:1px solid var(--glass-border); overflow:hidden}
+    background:rgba(10,11,18,.68);backdrop-filter:blur(8px) saturate(120%);
+    border-top:1px solid var(--glass-border);overflow:hidden}
   .seg{display:grid;place-items:center;font-size:12px;color:#cfd3ff}
   .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
   .seg.is-active{color:#fff;background:rgba(255,255,255,.10);box-shadow:inset 0 2px rgba(255,255,255,.25)}
@@ -67,7 +72,7 @@
   .case-host{display:grid;justify-items:center;align-content:start;gap:14px}
   .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
   .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
-  .case-card img{width:min(70vw, 340px);height:auto;object-fit:contain;border-radius:12px}
+  .case-card img{width:min(70vw,340px);height:auto;object-fit:contain;border-radius:12px}
   .case-title{font-weight:800}
   .case-card .price{font-weight:800;font-size:16px;opacity:.9}
   /* экран открытия */
@@ -123,12 +128,14 @@
   <button id="back-cases">назад</button>
   <div id="fx-layer"></div>
 
+  <!-- звук -->
   <audio id="sfx-open" preload="auto" playsinline>
     <source src="case_open.MP3" type="audio/mpeg">
     <source src="case_open.mp3" type="audio/mpeg">
   </audio>
 
   <main id="views">
+    <!-- TAP -->
     <section id="tab-earn" class="view is-active">
       <div class="tap-center">
         <div class="tap-wrap">
@@ -138,6 +145,7 @@
       </div>
     </section>
 
+    <!-- CASE -->
     <section id="tab-1" class="view">
       <div class="case-host">
         <div id="cases-list" class="cases-list">
@@ -163,7 +171,11 @@
       </div>
     </section>
 
-    <section id="tab-2" class="view"><div class="inv-grid" id="inv-grid"></div></section>
+    <!-- INVENTORY -->
+    <section id="tab-2" class="view">
+      <div class="inv-grid" id="inv-grid"></div>
+    </section>
+
     <section id="tab-3" class="view"></section>
   </main>
 
@@ -174,8 +186,9 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v38</footer>
+  <footer>v39</footer>
 
+  <!-- modal -->
   <div id="modal" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true">
       <img id="modal-img" alt="" />
@@ -192,43 +205,82 @@
 (async function(){
   const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
 
-  /* ---------- Cloud+Local storage с привязкой к TG и живым синком ---------- */
-  const PREFIX = 'v38:';
-  const cloud = tg?.cloudStorage || tg?.CloudStorage;
+  /* ========= 0) НАСТРОЙКА ОПЦИОНАЛЬНОГО БЭКЕНДА ДЛЯ «ЖИВОГО» СИНКА =========
+     Если хочешь реальный лайв-синк между ПК/телефоном:
+     1) Создай проект в supabase.com
+     2) Таблицы:
+        -- profiles
+           user_id text primary key
+           balance bigint not null default 0
+        -- inventory
+           id bigserial primary key
+           user_id text not null
+           key text, name text, price int, src text
+           created_at timestamptz default now()
+     3) Включи Realtime для обеих таблиц.
+     4) Вставь URL и anon key ниже. Если оставить пустыми — будет CloudStorage/LocalStorage. */
+  const SUPABASE_URL  = ""; // <- вставь при желании
+  const SUPABASE_ANON = ""; // <- вставь при желании
+  const db = (SUPABASE_URL && SUPABASE_ANON && window.supabase)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:false } })
+    : null;
 
+  /* ========= 1) ХРАНИЛКА: CloudStorage (TG) + LocalStorage, либо Supabase ========= */
+  const PREFIX = 'v39:';                       // общий сброс для всех прошлых версий
+  const uid = String(tg?.initDataUnsafe?.user?.id ?? 'anon');
+
+  const cloud = tg?.cloudStorage || tg?.CloudStorage;
   const csGet  = (k)=> new Promise(r=> cloud?.getItem?.(PREFIX+k,(e,v)=>r(v??null)) ?? r(null));
   const csSet  = (k,v)=> new Promise(r=> cloud?.setItem?.(PREFIX+k,v,()=>r(true)) ?? r(false));
-  const csKeys = ()=> new Promise(r=> cloud?.getKeys?.((e,a)=>r(a||[])) ?? r([]));
-  const csDel  = (k)=> new Promise(r=> cloud?.removeItem?.(k,()=>r(true)) ?? r(false));
-
-  const lsGet =(k)=> localStorage.getItem(PREFIX+k);
-  const lsSet =(k,v)=> localStorage.setItem(PREFIX+k,v);
-  const lsDelAll=()=> Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).forEach(k=>localStorage.removeItem(k));
+  const lsGet  = (k)=> localStorage.getItem(PREFIX+k);
+  const lsSet  = (k,v)=> localStorage.setItem(PREFIX+k,v);
 
   async function storeGet(k, def=null){
-    let v = await csGet(k);
-    if(v==null) v = lsGet(k);
+    if(db){
+      if(k==='bal'){
+        const {data}=await db.from('profiles').select('balance').eq('user_id',uid).maybeSingle();
+        return (data?.balance!=null)? String(data.balance): (await csGet(k)) ?? lsGet(k) ?? def;
+      }
+      if(k==='inv'){
+        const {data}=await db.from('inventory').select('*').eq('user_id',uid).order('created_at',{ascending:true});
+        return JSON.stringify(data||[]);
+      }
+    }
+    let v = await csGet(k); if(v==null) v = lsGet(k);
     return v ?? def;
   }
-  async function storeSet(k, v){
-    lsSet(k, v);
-    csSet(k, v).catch(()=>{});
-  }
-  async function storeClearAll(){
-    lsDelAll();
-    const keys = await csKeys();
-    await Promise.all((keys||[]).filter(k=>k.startsWith(PREFIX)).map(k=>csDel(k)));
+  async function storeSet(k,v){
+    lsSet(k,v); csSet(k,v).catch(()=>{});
+    if(db){
+      if(k==='bal'){ await db.from('profiles').upsert({user_id:uid,balance:parseInt(v||'0',10)||0}); }
+      if(k==='inv'){  // синхронизация инвентаря (простая замена)
+        try{
+          const current = JSON.parse(v||'[]');
+          await db.from('inventory').delete().eq('user_id',uid);
+          if(current.length){ await db.from('inventory').insert(current.map(x=>({user_id:uid,key:x.key,name:x.name,price:x.price,src:x.src,created_at:new Date()}))); }
+        }catch(_){}
+      }
+    }
   }
 
-  /* ---------- навигация + автосейв при уходе ---------- */
+  // live-события из supabase (если настроен)
+  if(db){
+    db.channel('realtime:'+uid)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`user_id=eq.${uid}`},
+        payload=>{ const b=payload?.new?.balance; if(b!=null){ balance=+b; lsSet('bal',String(balance)); drawBal(); } })
+      .on('postgres_changes',{event:'*',schema:'public',table:'inventory',filter:`user_id=eq.${uid}`},
+        async ()=>{ if(activeTab==='2'){ await drawInv(true); } })
+      .subscribe();
+  }
+
+  /* ========= 2) НАВИГАЦИЯ И РАМКА ОБРАБОТКИ УХОДА ========= */
   const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
   const views = { earn:$('#tab-earn'), '1':$('#tab-1'), '2':$('#tab-2'), '3':$('#tab-3') };
-  let activeTab='earn';
+  let activeTab='earn', autoKeepAfterSpin=false;
   tabs.forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.tab)));
-
   function switchTo(name){
     if(activeTab==='1' && name!=='1' && spinning){ autoKeepAfterSpin = true; }
-    activeTab = name;
+    activeTab=name;
     tabs.forEach(t=>t.classList.toggle('is-active', t.dataset.tab===name));
     Object.entries(views).forEach(([k,v])=>v.classList.toggle('is-active', k===name));
     if(name==='1') views['1'].scrollTo({top:0,behavior:'auto'});
@@ -236,12 +288,10 @@
     if(name==='2') drawInv();
   }
 
-  /* ---------- баланс / тап ---------- */
+  /* ========= 3) БАЛАНС / ТАП ========= */
   let balance = parseInt(await storeGet('bal','0'),10);
-  const $bal = $('#balance'); const drawBal=()=>($bal.textContent=balance);
-  drawBal();
-
-  $('#hello-btn').addEventListener('click', (ev)=>{ spawnSparks(ev); balance++; storeSet('bal', String(balance)); drawBal(); flipCat(); });
+  const $bal = $('#balance'); const drawBal=()=>($bal.textContent=balance); drawBal();
+  $('#hello-btn').addEventListener('click', (ev)=>{ spawnSparks(ev); balance++; storeSet('bal',String(balance)); drawBal(); flipCat(); });
 
   function spawnSparks(ev){
     const btn=$('#hello-btn'), r=btn.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
@@ -259,44 +309,43 @@
   }
   let flip=false; function flipCat(){ $('#cat-a').style.opacity=flip?0:1; $('#cat-b').style.opacity=flip?1:0; flip=!flip; }
 
-  /* ---------- CASE ---------- */
-  const tabCase      = views['1'];
-  const casesList    = $('#cases-list');
-  const openView     = $('#case-open-view');
-  const casePreview  = $('#case-preview');
-  const caseOpen     = $('#case-open');
-  const actions      = $('#case-actions');
-  const sellBtn      = $('#sell-btn');
-  const keepBtn      = $('#keep-btn');
-  const dropsEl      = $('#drops');
-  const reel         = $('#reel');
-  const track        = $('#reel-track');
-  const backBtn      = $('#back-cases');
-  const sfxOpen      = $('#sfx-open');
+  /* ========= 4) CASE / РУЛЕТКА ========= */
+  const tabCase   = views['1'];
+  const casesList = $('#cases-list');
+  const openView  = $('#case-open-view');
+  const casePrev  = $('#case-preview');
+  const caseOpen  = $('#case-open');
+  const actions   = $('#case-actions');
+  const sellBtn   = $('#sell-btn');
+  const keepBtn   = $('#keep-btn');
+  const dropsEl   = $('#drops');
+  const reel      = $('#reel');
+  const track     = $('#reel-track');
+  const backBtn   = $('#back-cases');
+  const sfxOpen   = $('#sfx-open');
 
   const ITEMS = [
     { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
     { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
     { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
   ];
-
   renderDrops();
 
-  let selectedCost=null, spinning=false, lastWin=null, autoKeepAfterSpin=false;
+  let spinning=false, lastWin=null;
 
   $('#case-card').addEventListener('click', openCase);
   backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
 
   function openCase(){
-    selectedCost=50; tabCase.scrollTo({top:0,behavior:'auto'});
+    tabCase.scrollTo({top:0,behavior:'auto'});
     casesList.style.display='none'; openView.classList.add('is-active'); backBtn.style.display='inline-block';
     caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null; autoKeepAfterSpin=false;
-    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePrev.classList.remove('hide');
   }
   function resetCaseView(){
     openView.classList.remove('is-active'); casesList.style.display=''; backBtn.style.display='none';
-    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null; autoKeepAfterSpin=false;
-    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null; autoKeepAfterSpin=false;
+    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePrev.classList.remove('hide');
   }
 
   const SPIN_MS = 7000, RETURN_MS = 300, OVERSHOOT_PX = 12;
@@ -304,87 +353,87 @@
   const snap = x => Math.round(x*DPR)/DPR;
 
   caseOpen.addEventListener('click', async ()=>{
-    try{
-      if(spinning) return;
-      const cost = selectedCost||50;
-      if(balance < cost){ tg?.showAlert?.('Недостаточно тапов'); return; }
-      spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
+    if(spinning) return;
+    if(balance < 50){ tg?.showAlert?.('Недостаточно тапов'); return; }
+    spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
+    balance -= 50; await storeSet('bal',String(balance)); drawBal();
+    try{ sfxOpen.currentTime=0; await sfxOpen.play(); }catch(_){}
 
-      balance -= cost; await storeSet('bal', String(balance)); drawBal();
-      try { sfxOpen.currentTime = 0; await sfxOpen.play(); } catch(_) {}
+    const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+    const idx = buildTrackWithWin(prize);          // вернёт индекс целевой карточки
+    lastWin = null;
 
-      const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
-      buildTrackWithWin(prize);
-      lastWin = null;
-
-      casePreview.classList.add('hide');
-      setTimeout(()=>{
-        reel.classList.add('visible');
-        requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(prize)));
-      }, 80);
-
-      function startSpin(prize){
-        const first = track.firstElementChild;
-        const cardW = first ? first.getBoundingClientRect().width : 180;
-        const center = (reel.clientWidth - cardW)/2;
-        const span = ITEMS.length, mid = Math.floor(span/2), rep = 6;
-        const idx = (rep-1)*span + mid;
-        const distance = idx*cardW - center;
-
-        const t0 = performance.now();
-        const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-
-        function animMain(now){
-          const p = Math.min((now - t0)/SPIN_MS, 1);
-          track.style.transform = `translate3d(${snap(-distance*(1-Math.pow(1-p,3)) - OVERSHOOT_PX)}px,0,0)`;
-          if(p < 1) requestAnimationFrame(animMain);
-          else animReturn(distance, idx, prize);
-        }
-        requestAnimationFrame(animMain);
-      }
-
-      function animReturn(distance, idx, prize){
-        const start = performance.now();
-        function tick(now){
-          const p = Math.min((now - start)/RETURN_MS, 1);
-          track.style.transform = `translate3d(${snap(-distance - OVERSHOOT_PX*(1-p))}px,0,0)`;
-          if(p < 1) requestAnimationFrame(tick);
-          else finishSpin(idx, prize);
-        }
-        requestAnimationFrame(tick);
-      }
-
-      async function finishSpin(idx, prize){
-        [...track.children].forEach(e=>e.classList.remove('win'));
-        track.children[idx]?.classList.add('win');
-        lastWin = prize;
-        spinning=false; caseOpen.disabled=false;
-
-        if(autoKeepAfterSpin || activeTab!=='1'){
-          await invAdd(prize);
-          autoKeepAfterSpin=false;
-          tg?.showAlert?.(`Выпало: ${prize.name} — добавлено в инвентарь`);
-          resetCaseView();
-        }else{
-          actions.classList.add('is-active');
-          sellBtn.textContent = `Продать — ${prize.price} Taps`;
-        }
-      }
-    }catch(err){
-      console.error('open error', err);
-      spinning=false; caseOpen.disabled=false;
-      tg?.showAlert?.('Что-то пошло не так при открытии. Попробуйте ещё раз.');
-    }
+    casePrev.classList.add('hide');
+    setTimeout(()=>{
+      reel.classList.add('visible');
+      requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(idx, prize)));
+    },80);
   });
 
+  function startSpin(targetIndex, prize){
+    const first = track.firstElementChild;
+    const cardW = first ? first.getBoundingClientRect().width : 180;
+    const center = (reel.clientWidth - cardW)/2;
+    const distance = targetIndex*cardW - center;
+
+    const t0 = performance.now();
+    function animMain(now){
+      const p = Math.min((now - t0)/SPIN_MS, 1);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      track.style.transform = `translate3d(${snap(-distance*eased - OVERSHOOT_PX)}px,0,0)`;
+      if(p < 1) requestAnimationFrame(animMain);
+      else animReturn(distance, targetIndex, prize);
+    }
+    requestAnimationFrame(animMain);
+  }
+  function animReturn(distance, idx, prize){
+    const start = performance.now();
+    function tick(now){
+      const p = Math.min((now - start)/RETURN_MS, 1);
+      track.style.transform = `translate3d(${snap(-distance - OVERSHOOT_PX*(1-p))}px,0,0)`;
+      if(p < 1) requestAnimationFrame(tick);
+      else finishSpin(idx, prize);
+    }
+    requestAnimationFrame(tick);
+  }
+  async function finishSpin(idx, prize){
+    [...track.children].forEach(e=>e.classList.remove('win'));
+    track.children[idx]?.classList.add('win');
+    lastWin = prize;
+    spinning=false; caseOpen.disabled=false;
+
+    if(autoKeepAfterSpin || activeTab!=='1'){
+      await invAdd(prize);
+      autoKeepAfterSpin=false;
+      tg?.showAlert?.(`Выпало: ${prize.name} — добавлено в инвентарь`);
+      resetCaseView();
+    }else{
+      actions.classList.add('is-active');
+      sellBtn.textContent=`Продать — ${prize.price} Taps`;
+    }
+  }
+
+  // динамическая сборка трека с большим запасом по обеим сторонам
   function buildTrackWithWin(win){
     track.innerHTML='';
-    const span=ITEMS.length, mid=Math.floor(span/2), rep=6;
+    // Временная карта — получить реальную ширину
+    const tmp=document.createElement('div'); tmp.className='card';
+    tmp.innerHTML=`<img src="${ITEMS[0].src}"><div class="label">${ITEMS[0].name}</div>`;
+    track.appendChild(tmp);
+    const cardW = tmp.getBoundingClientRect().width || 160; track.innerHTML='';
+
+    const visible = Math.max(3, Math.ceil(reel.clientWidth / cardW));
+    const span = ITEMS.length;
+    const rep = Math.max(visible*6, 24);           // достаточно, чтобы справа/слева был запас
+    const mid = Math.floor(span/2);
+    const middleRep = Math.floor(rep/2);           // «средняя пачка»
+    const targetIndex = middleRep*span + mid;      // целевой индекс в центре всей дорожки
+
     for(let r=0;r<rep;r++){
-      const arr=shuffle(ITEMS.slice());            // РАЗНЫЙ ПОРЯДОК КАЖДЫЙ РАЗ
-      if(r===rep-1){
-        const i=arr.findIndex(x=>x.key===win.key);
-        if(i!==-1){ const t=arr[mid]; arr[mid]=arr[i]; arr[i]=t; }
+      const arr = shuffle(ITEMS.slice());          // каждый ряд в случайном порядке
+      if(r===middleRep){
+        const i=arr.findIndex(x=>x.key===win.key); // в средней пачке приз → по центру
+        if(i!==-1){ [arr[mid], arr[i]] = [arr[i], arr[mid]]; }
       }
       for(const it of arr){
         const el=document.createElement('div'); el.className='card';
@@ -392,7 +441,9 @@
         track.appendChild(el);
       }
     }
+    return targetIndex;
   }
+
   function renderDrops(){
     dropsEl.innerHTML='';
     for(const it of ITEMS){
@@ -402,8 +453,8 @@
     }
   }
 
-  /* ---------- INVENTORY ---------- */
-  const invGrid = $('#inv-grid');
+  /* ========= 5) ИНВЕНТАРЬ (DB или Cloud/Local) ========= */
+  const invGrid   = $('#inv-grid');
   const modal     = $('#modal');
   const modalImg  = $('#modal-img');
   const modalTitle= $('#modal-title');
@@ -411,13 +462,41 @@
   const modalSell = $('#modal-sell');
   const modalClose= $('#modal-close');
 
-  async function invGet(){ try{return JSON.parse(await storeGet('inv','[]'));}catch(_){return[]} }
-  function invSet(v){ storeSet('inv', JSON.stringify(v)); }
-  async function invAdd(it){ const a=await invGet(); a.push({...it,id:Date.now().toString(36)}); invSet(a); drawInv(); }
-  async function invDel(id){ const a=await invGet(); invSet(a.filter(x=>x.id!==id)); drawInv(); }
+  async function invGet(){
+    if(db){
+      const {data}=await db.from('inventory').select('*').eq('user_id',uid).order('created_at',{ascending:true});
+      return data||[];
+    }
+    try{ return JSON.parse(await storeGet('inv','[]')); }catch(_){ return []; }
+  }
+  async function invSetAll(arr){
+    if(db){
+      await db.from('inventory').delete().eq('user_id',uid);
+      if(arr.length) await db.from('inventory').insert(arr.map(x=>({...x,user_id:uid,created_at:new Date()})));
+      return;
+    }
+    await storeSet('inv', JSON.stringify(arr));
+  }
+  async function invAdd(it){
+    if(db){
+      await db.from('inventory').insert({user_id:uid,key:it.key,name:it.name,price:it.price,src:it.src});
+      if(activeTab==='2') drawInv(true);
+      return;
+    }
+    const a=await invGet(); a.push({...it,id:Date.now().toString(36)}); await invSetAll(a); drawInv();
+  }
+  async function invDelById(id){
+    if(db){
+      await db.from('inventory').delete().eq('id', id);
+      if(activeTab==='2') drawInv(true);
+      return;
+    }
+    const a=await invGet(); await invSetAll(a.filter(x=>x.id!==id)); drawInv();
+  }
 
-  async function drawInv(){
-    const inv=await invGet(); invGrid.innerHTML='';
+  async function drawInv(forceCloud=false){
+    const inv = await invGet();
+    invGrid.innerHTML='';
     if(!inv.length) return;
     for(const it of inv){
       const c=document.createElement('div'); c.className='inv-card';
@@ -426,56 +505,38 @@
       invGrid.appendChild(c);
     }
   }
+
   function openModal(it){
     modalImg.src=it.src; modalTitle.textContent=it.name; modalPrice.textContent=`Цена: ${it.price} Taps`;
     modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
-    modalSell.onclick=async()=>{ balance+=it.price; await storeSet('bal', String(balance)); drawBal(); await invDel(it.id); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`); };
+    modalSell.onclick=async()=>{
+      balance+=it.price; await storeSet('bal',String(balance)); drawBal();
+      await invDelById(it.id ?? it.id); // у Supabase id числовой, у локального — строка
+      closeModal(); tg?.showAlert?.(`Продано за ${it.price}`);
+    };
     modalClose.onclick=closeModal; modal.onclick=e=>{ if(e.target===modal) closeModal(); };
   }
   function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
   $('#keep-btn').addEventListener('click', async ()=>{ if(!lastWin) return; await invAdd(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); });
-  $('#sell-btn').addEventListener('click', async ()=>{ if(!lastWin) return; balance+=lastWin.price; await storeSet('bal', String(balance)); drawBal(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+  $('#sell-btn').addEventListener('click', async ()=>{ if(!lastWin) return; balance+=lastWin.price; await storeSet('bal',String(balance)); drawBal(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
 
-  /* reset */
+  /* ========= 6) RESET ========= */
   $('#reset-btn').addEventListener('click', async ()=>{
-    await storeClearAll();
-    balance=0; drawBal(); drawInv();
-    tg?.showAlert?.('Сброшено');
+    if(db){
+      await db.from('inventory').delete().eq('user_id',uid);
+      await db.from('profiles').upsert({user_id:uid,balance:0});
+    }
+    lsSet('bal','0'); lsSet('inv','[]'); if(cloud){ await csSet('bal','0'); await csSet('inv','[]'); }
+    balance=0; drawBal(); drawInv(); tg?.showAlert?.('Сброшено');
   });
 
-  /* ---------- «живой» синк между устройствами ---------- */
-  async function syncFromCloud(){
-    const balStr = await csGet('bal');
-    if(balStr!=null && String(balance)!==String(balStr)){
-      balance = parseInt(balStr,10)||0; drawBal();
-      // локально тоже обновим
-      lsSet('bal', String(balance));
-    }
-    const invStr = await csGet('inv');
-    if(invStr!=null && invStr !== lsGet('inv')){
-      lsSet('inv', invStr);
-      if(activeTab==='2') drawInv();
-    }
-  }
-  // раз в ~1.5с + при возвращении фокуса
-  setInterval(syncFromCloud, 1500);
-  window.addEventListener('focus', syncFromCloud);
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) syncFromCloud(); });
-
-  /* helpers */
+  /* ========= helpers ========= */
   function $(q){return document.querySelector(q)}
-  function shuffle(a){
-    for(let i=a.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      const t=a[i]; a[i]=a[j]; a[j]=t;  // ← фикс
-    }
-    return a;
-  }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
   // первичный рендер
   drawInv();
-
 })();
 </script>
 </body>
