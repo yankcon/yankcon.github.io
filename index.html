@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v36)</title>
+<title>Mini App — Tap / Case / Inventory (v37)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -12,7 +12,6 @@
     --accent:#ff3b30; --brand1:#7c3aed; --brand2:#ff3b81;
     --glass:rgba(255,255,255,.06); --glass-border:rgba(255,255,255,.22);
     --seg-h:54px;
-
     --stage-w: min(92vw, 560px);
     --stage-h: clamp(220px, 52vw, 360px);
     --card-w : clamp(120px, 28vw, 220px);
@@ -27,14 +26,12 @@
       radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
       linear-gradient(180deg,var(--bg1),var(--bg2));
   }
-
   /* баланс */
   #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
     border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #wallet img{width:22px;height:22px;display:block}
   #balance{font-weight:800}
-
   /* верхние кнопки */
   #reset-btn,#back-cases{
     position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
@@ -43,34 +40,24 @@
   }
   #reset-btn{top:10px}
   #back-cases{top:44px;display:none}
-
   /* FX */
   #fx-layer{position:fixed;inset:0;pointer-events:none;z-index:5}
   .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
     transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
   @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
-
-  /* нижняя панель — blur-оверлей поверх контента */
+  /* нижняя панель */
   .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
     display:grid;grid-template-columns:repeat(4,1fr);
     background:rgba(10,11,18,.68); backdrop-filter: blur(8px) saturate(120%);
-    border-top:1px solid var(--glass-border); overflow:hidden;
-    will-change:transform; transform:translateZ(0)}
+    border-top:1px solid var(--glass-border); overflow:hidden}
   .seg{display:grid;place-items:center;font-size:12px;color:#cfd3ff}
   .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
   .seg.is-active{color:#fff;background:rgba(255,255,255,.10);box-shadow:inset 0 2px rgba(255,255,255,.25)}
   footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
-
-  main{
-    width:100%;max-width:100%;
-    height:100dvh;
-    padding:16px 12px 8px; /* контент уходит под панель */
-    box-sizing:border-box; overflow:hidden;
-  }
+  /* контейнер вкладок */
+  main{width:100%;height:100dvh;padding:16px 12px 8px;box-sizing:border-box;overflow:hidden}
   .view{display:none;position:relative}
   .view.is-active{display:block}
-  .view:not(.is-active){display:none!important}
-
   /* TAP */
   #tab-earn{width:100%;height:100%}
   .tap-center{height:100%;display:grid;place-items:center}
@@ -79,62 +66,51 @@
   .tap-cat img{position:absolute;left:50%;transform:translateX(-50%);top:0;height:90px;transition:opacity .08s ease}
   #cat-a{opacity:1} #cat-b{opacity:0}
   .btn{font-size:clamp(22px,5vw,40px);text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25)}
-
-  /* CASE — список (scroll) */
-  #tab-1{width:100%;height:100%;overflow:auto;
-    padding-top:72px; /* под верхние кнопки */ 
-    padding-bottom:calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0));
-  }
+  /* CASE — список */
+  #tab-1{width:100%;height:100%;overflow:auto;padding-top:72px;
+         padding-bottom:calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0))}
   .case-host{display:grid;justify-items:center;align-content:start;gap:14px}
   .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
   .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
   .case-card img{width:min(70vw, 340px);height:auto;object-fit:contain;border-radius:12px}
   .case-title{font-weight:800}
   .case-card .price{font-weight:800;font-size:16px;opacity:.9}
-
-  /* экран открытия кейса */
+  /* экран открытия */
   .case-open-view{display:none}
   .case-open-view.is-active{display:block}
   .case-stage{position:relative;width:var(--stage-w);height:var(--stage-h);margin:0 auto;border-radius:14px}
   .case-preview{position:absolute;inset:0;border-radius:14px;overflow:hidden;opacity:1;transition:opacity 400ms ease}
   .case-preview.hide{opacity:0}
   .case-preview img{width:100%;height:100%;object-fit:contain}
-
-  .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 300ms ease;
-    will-change:transform; contain:paint;}
+  .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);
+        background:rgba(255,255,255,.06);transition:opacity 300ms ease;contain:paint}
   .reel.visible{opacity:1}
   .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
   .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translate3d(0,0,0);contain:paint}
-
   .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:4px}
   .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 48px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-  .card .label{font-size:12px;margin:0 0 4px 0;opacity:.95;line-height:1.1;text-align:center}
+  .card .label{font-size:12px;margin:0 0 4px 0;line-height:1.1;text-align:center}
   .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5)}
-
   .open-btn{display:block;margin:12px auto 10px;padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
   .actions{display:none;gap:10px;justify-content:center}
   .actions.is-active{display:grid;grid-auto-flow:column}
   .a-btn{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer}
   .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
   .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
-
-  /* список дропов — уезжает под панель (визуально разделы поверх) */
+  /* дропы */
   .drops{margin:18px auto 0;max-width:var(--stage-w);
-         display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
-         padding-bottom:120px;}
+         display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:120px}
   .drop{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
   .drop img{width:100%;height:120px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
   .drop .t{font-size:12px;text-align:center}
   .drop .p{font-weight:800}
-
-  /* INVENTORY (scroll + отступы от интерфейса) */
+  /* INVENTORY */
   #tab-2{width:100%;height:100%;overflow:auto;
-    padding:72px 12px calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0));}
+    padding:72px 12px calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0))}
   .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
   .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center;cursor:pointer}
   .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-
-  /* модалка инвентаря */
+  /* modal */
   .modal{position:fixed;inset:0;display:none;z-index:40}
   .modal.show{display:grid;place-items:center}
   .modal::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
@@ -152,7 +128,7 @@
   <button id="back-cases">назад</button>
   <div id="fx-layer"></div>
 
-  <!-- звук открытия кейса: оба имени файла -->
+  <!-- звук (обе версии имени) -->
   <audio id="sfx-open" preload="auto" playsinline>
     <source src="case_open.MP3" type="audio/mpeg">
     <source src="case_open.mp3" type="audio/mpeg">
@@ -210,9 +186,9 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v36</footer>
+  <footer>v37</footer>
 
-  <!-- Модалка инвентаря -->
+  <!-- модалка -->
   <div id="modal" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true">
       <img id="modal-img" alt="" />
@@ -226,34 +202,64 @@
   </div>
 
 <script>
-(function(){
+(async function(){
   const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
 
-  /* ——— навигация + автосохранение дропа при уходе */
+  /* ---------- Cloud + Local storage (привязка к аккаунту TG) ---------- */
+  // Новый префикс — глобальный "сброс прогресса" для всех
+  const PREFIX = 'v37:'; 
+  const cloud = tg?.cloudStorage || tg?.CloudStorage;
+  const csGet   = (k)=> new Promise(r=> cloud?.getItem?.(PREFIX+k,(e,v)=>r(v??null)) ?? r(null));
+  const csSet   = (k,v)=> new Promise(r=> cloud?.setItem?.(PREFIX+k,v,()=>r(true)) ?? r(false));
+  const csKeys  = ()=> new Promise(r=> cloud?.getKeys?.((e,a)=>r(a||[])) ?? r([]));
+  const csDel   = (k)=> new Promise(r=> cloud?.removeItem?.(k,()=>r(true)) ?? r(false));
+  const lsGet   =(k)=> localStorage.getItem(PREFIX+k);
+  const lsSet   =(k,v)=> localStorage.setItem(PREFIX+k,v);
+  const lsDelAll=()=> Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).forEach(k=>localStorage.removeItem(k));
+
+  async function storeGet(k, def=null){
+    let v = await csGet(k);
+    if(v==null) v = lsGet(k);
+    return v ?? def;
+  }
+  async function storeSet(k, v){
+    lsSet(k, v);
+    csSet(k, v).catch(()=>{});
+  }
+  async function storeClearAllForThisUser(){
+    // локально
+    lsDelAll();
+    // в облаке — удаляем только наши ключи с этим PREFIX
+    const keys = await csKeys();
+    await Promise.all((keys||[]).filter(k=>k.startsWith(PREFIX)).map(k=>csDel(k)));
+  }
+
+  /* ---------- навигация + автосейв результата при уходе ---------- */
   const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
   const views = { earn:$('#tab-earn'), '1':$('#tab-1'), '2':$('#tab-2'), '3':$('#tab-3') };
+  let activeTab='earn';
   tabs.forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.tab)));
+
   function switchTo(name){
-    // если ушли из кейса во время/после открытия — автосохранить
-    if(name!=='1'){
-      if(pendingPrize){ invAdd(pendingPrize); pendingPrize=null; }
-      else if(lastWin){ invAdd(lastWin); lastWin=null; }
-      spinning=false;
+    // если уходим с "Case" во время спина — НЕ сбрасываем экран,
+    // просто помечаем, что после докрутки нужно автосохранить
+    if(activeTab==='1' && name!=='1' && spinning){
+      autoKeepAfterSpin = true;
     }
+    activeTab = name;
     tabs.forEach(t=>t.classList.toggle('is-active', t.dataset.tab===name));
     Object.entries(views).forEach(([k,v])=>v.classList.toggle('is-active', k===name));
     if(name==='1') views['1'].scrollTo({top:0,behavior:'auto'});
-    if(name!=='1') resetCaseView();
+    if(name!=='1' && !spinning) resetCaseView();
     if(name==='2') drawInv();
   }
 
-  /* ——— баланс + тап */
-  const KEY_BAL = 'tapper-count:'+ (tg?.initDataUnsafe?.user?.id ?? 'anon');
-  let balance = +(localStorage.getItem(KEY_BAL)||0);
-  const $bal = $('#balance'); const saveBal=()=>localStorage.setItem(KEY_BAL,String(balance)); const drawBal=()=>($bal.textContent=balance);
+  /* ---------- баланс / тап ---------- */
+  let balance = parseInt(await storeGet('bal','0'),10);
+  const $bal = $('#balance'); const drawBal=()=>($bal.textContent=balance);
   drawBal();
 
-  $('#hello-btn').addEventListener('click', (ev)=>{ spawnSparks(ev); balance++; saveBal(); drawBal(); flipCat(); });
+  $('#hello-btn').addEventListener('click', (ev)=>{ spawnSparks(ev); balance++; storeSet('bal', String(balance)); drawBal(); flipCat(); });
 
   function spawnSparks(ev){
     const btn=$('#hello-btn'), r=btn.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
@@ -271,7 +277,7 @@
   }
   let flip=false; function flipCat(){ $('#cat-a').style.opacity=flip?0:1; $('#cat-b').style.opacity=flip?1:0; flip=!flip; }
 
-  /* ——— CASE */
+  /* ---------- CASE ---------- */
   const tabCase      = views['1'];
   const casesList    = $('#cases-list');
   const openView     = $('#case-open-view');
@@ -284,25 +290,20 @@
   const reel         = $('#reel');
   const track        = $('#reel-track');
   const backBtn      = $('#back-cases');
-
-  const sfxOpen = $('#sfx-open');
+  const sfxOpen      = $('#sfx-open');
 
   const ITEMS = [
     { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
     { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
     { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
   ];
-
-  // мягкая предзагрузка изображений
-  (async function preload(){
-    try { await Promise.all(ITEMS.map(it => new Promise(res => {
-      const im = new Image(); im.decoding='async'; im.src = it.src; (im.decode?im.decode():Promise.resolve()).finally(res);
-    }))); } catch(_) {}
+  (async ()=>{ // мягкая предзагрузка
+    try { await Promise.all(ITEMS.map(it => new Promise(res => { const im=new Image(); im.decoding='async'; im.src=it.src; (im.decode?im.decode():Promise.resolve()).finally(res) }))); } catch(_){}
   })();
 
   renderDrops();
 
-  let selectedCost=null, spinning=false, lastWin=null, pendingPrize=null;
+  let selectedCost=null, spinning=false, lastWin=null, autoKeepAfterSpin=false;
 
   $('#case-card').addEventListener('click', openCase);
   backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
@@ -310,100 +311,107 @@
   function openCase(){
     selectedCost=50; tabCase.scrollTo({top:0,behavior:'auto'});
     casesList.style.display='none'; openView.classList.add('is-active'); backBtn.style.display='inline-block';
-    caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null; pendingPrize=null;
+    caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null; autoKeepAfterSpin=false;
     track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
   function resetCaseView(){
     openView.classList.remove('is-active'); casesList.style.display=''; backBtn.style.display='none';
-    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null; pendingPrize=null;
+    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null; autoKeepAfterSpin=false;
     track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
 
-  /* ——— плавная анимация 7.0s + овершут 300ms (с привязкой к физ. пикселям) */
+  /* ровная анимация 7s + возврат 300ms; выравнивание по физ.пикселям */
   const SPIN_MS = 7000, RETURN_MS = 300, OVERSHOOT_PX = 12;
   const DPR = (window.devicePixelRatio||1);
-  const snapToPixel = x => Math.round(x*DPR)/DPR; // убирает микро-дёргание на мобилках
+  const snap = x => Math.round(x*DPR)/DPR;
 
   caseOpen.addEventListener('click', async ()=>{
     if(spinning) return;
     const cost = selectedCost||50;
-    if(balance < cost) { tg?.showAlert?.('Недостаточно тапов'); return; }
+    if(balance < cost){ tg?.showAlert?.('Недостаточно тапов'); return; }
     spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
 
-    balance -= cost; saveBal(); drawBal();
+    balance -= cost; await storeSet('bal', String(balance)); drawBal();
 
     try { sfxOpen.currentTime = 0; await sfxOpen.play(); } catch(_) {}
 
+    // равномерный шанс: выбираем случайный предмет
     const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
-    lastWin = null;               // финальное значение установим после остановки
-    pendingPrize = prize;         // если уйдём со страницы — этот предмет добавим в инвентарь
-    buildTrackWithWin(prize);
+    buildTrackWithWin(prize);  // завершающая полоса, где по центру окажется prize
+    lastWin = null;            // заполним по факту остановки
 
     casePreview.classList.add('hide');
     setTimeout(()=>{
       reel.classList.add('visible');
+      // ждём layout → старт
       requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(prize)));
     }, 80);
 
-    function startSpin(){
+    function startSpin(prize){
       const first = track.firstElementChild;
       const cardW = first ? first.getBoundingClientRect().width : 180;
       const center = (reel.clientWidth - cardW)/2;
       const span = ITEMS.length, mid = Math.floor(span/2), rep = 6;
-      const idx = (rep-1)*span + mid;
-      const distance = idx*cardW - center;
+      const idx = (rep-1)*span + mid;          // целевой индекс (по центру)
+      const distance = idx*cardW - center;     // сколько прокрутить
 
       const t0 = performance.now();
       const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 
       function animMain(now){
-        const p = Math.min((now - t0) / SPIN_MS, 1);
+        const p = Math.min((now - t0)/SPIN_MS, 1);
         const eased = easeOutCubic(p);
-        const x = snapToPixel(-distance*eased - OVERSHOOT_PX);
-        track.style.transform = `translate3d(${x}px,0,0)`;
-        if (p < 1) requestAnimationFrame(animMain);
-        else animReturn(distance, idx);
+        track.style.transform = `translate3d(${snap(-distance*eased - OVERSHOOT_PX)}px,0,0)`;
+        if(p < 1) requestAnimationFrame(animMain);
+        else animReturn(distance, idx, prize);
       }
       requestAnimationFrame(animMain);
     }
 
-    function animReturn(distance, idx){
+    function animReturn(distance, idx, prize){
       const start = performance.now();
       function tick(now){
         const p = Math.min((now - start)/RETURN_MS, 1);
-        const x = snapToPixel(-distance - OVERSHOOT_PX*(1 - p));
-        track.style.transform = `translate3d(${x}px,0,0)`;
+        track.style.transform = `translate3d(${snap(-distance - OVERSHOOT_PX*(1-p))}px,0,0)`;
         if(p < 1) requestAnimationFrame(tick);
-        else finishSpin(idx);
+        else finishSpin(idx, prize);
       }
       requestAnimationFrame(tick);
     }
 
-    function finishSpin(idx){
+    async function finishSpin(idx, prize){
       [...track.children].forEach(e=>e.classList.remove('win'));
       track.children[idx]?.classList.add('win');
-      lastWin = pendingPrize;     // спин завершился → это и есть итог
+      lastWin = prize;
       spinning=false; caseOpen.disabled=false;
-      actions.classList.add('is-active');
-      sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
+
+      if(autoKeepAfterSpin || activeTab!=='1'){
+        // пользователь уже ушёл — автоматически сохраняем
+        invAdd(prize);
+        autoKeepAfterSpin=false;
+        tg?.showAlert?.(`Выпало: ${prize.name} — добавлено в инвентарь`);
+        resetCaseView();
+      }else{
+        actions.classList.add('is-active');
+        sellBtn.textContent = `Продать — ${prize.price} Taps`;
+      }
     }
   });
 
   function buildTrackWithWin(win){
     track.innerHTML='';
-    track.style.willChange = 'transform';
+    track.style.willChange='transform';
     const span=ITEMS.length, mid=Math.floor(span/2), rep=6;
     for(let r=0;r<rep;r++){
-      const arr=shuffle(ITEMS.slice());
-      if(r===rep-1){
+      const arr=shuffle(ITEMS.slice());               // каждый раз новый порядок
+      if(r===rep-1){                                  // в последней полосе win окажется по центру
         const i=arr.findIndex(x=>x.key===win.key);
         if(i!==-1){ const t=arr[mid]; arr[mid]=arr[i]; arr[i]=t; }
       }
       for(const it of arr){
         const el=document.createElement('div'); el.className='card';
-        const img=document.createElement('img'); img.alt=it.name; img.src=it.src; img.decoding='async';
-        const lab=document.createElement('div'); lab.className='label'; lab.textContent=it.name;
-        el.appendChild(img); el.appendChild(lab); track.appendChild(el);
+        el.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="label">${it.name}</div>`;
+        track.appendChild(el);
       }
     }
   }
@@ -416,8 +424,7 @@
     }
   }
 
-  /* ——— INVENTORY */
-  const KEY_INV = 'inventory:'+ (tg?.initDataUnsafe?.user?.id ?? 'anon');
+  /* ---------- INVENTORY ---------- */
   const invGrid = $('#inv-grid');
   const modal     = $('#modal');
   const modalImg  = $('#modal-img');
@@ -426,13 +433,13 @@
   const modalSell = $('#modal-sell');
   const modalClose= $('#modal-close');
 
-  function invGet(){ try{return JSON.parse(localStorage.getItem(KEY_INV)||'[]');}catch(_){return[]} }
-  function invSet(v){ localStorage.setItem(KEY_INV, JSON.stringify(v)); }
-  function invAdd(it){ const a=invGet(); a.push({...it,id:Date.now().toString(36)}); invSet(a); drawInv(); }
-  function invDel(id){ invSet(invGet().filter(x=>x.id!==id)); drawInv(); }
+  async function invGet(){ try{return JSON.parse(await storeGet('inv','[]'));}catch(_){return[]} }
+  function invSet(v){ storeSet('inv', JSON.stringify(v)); }
+  async function invAdd(it){ const a=await invGet(); a.push({...it,id:Date.now().toString(36)}); invSet(a); drawInv(); }
+  async function invDel(id){ const a=await invGet(); invSet(a.filter(x=>x.id!==id)); drawInv(); }
 
-  function drawInv(){
-    const inv=invGet(); invGrid.innerHTML='';
+  async function drawInv(){
+    const inv=await invGet(); invGrid.innerHTML='';
     if(!inv.length) return;
     for(const it of inv){
       const c=document.createElement('div'); c.className='inv-card';
@@ -444,25 +451,27 @@
   function openModal(it){
     modalImg.src=it.src; modalTitle.textContent=it.name; modalPrice.textContent=`Цена: ${it.price} Taps`;
     modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
-    modalSell.onclick=()=>{ balance+=it.price; saveBal(); drawBal(); invDel(it.id); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`); };
+    modalSell.onclick=async()=>{ balance+=it.price; await storeSet('bal', String(balance)); drawBal(); await invDel(it.id); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`); };
     modalClose.onclick=closeModal; modal.onclick=e=>{ if(e.target===modal) closeModal(); };
   }
   function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
-  $('#keep-btn').addEventListener('click', ()=>{ if(!lastWin) return; invAdd(lastWin); actions.classList.remove('is-active'); pendingPrize=null; tg?.showAlert?.('Сохранено в инвентарь'); });
-  $('#sell-btn').addEventListener('click', ()=>{ if(!lastWin) return; balance+=lastWin.price; saveBal(); drawBal(); actions.classList.remove('is-active'); pendingPrize=null; tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+  $('#keep-btn').addEventListener('click', async ()=>{ if(!lastWin) return; await invAdd(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); });
+  $('#sell-btn').addEventListener('click', async ()=>{ if(!lastWin) return; balance+=lastWin.price; await storeSet('bal', String(balance)); drawBal(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
 
-  /* reset */
-  $('#reset-btn').addEventListener('click', ()=>{
-    localStorage.removeItem(KEY_BAL);
-    localStorage.removeItem(KEY_INV);
-    balance=0; drawBal(); drawInv();
-    tg?.showAlert?.('Сброс выполнен');
+  /* reset для текущего пользователя */
+  $('#reset-btn').addEventListener('click', async ()=>{
+    await storeClearAllForThisUser();
+    balance=0; drawBal(); drawInv(); tg?.showAlert?.('Сброшено');
   });
 
   /* helpers */
   function $(q){return document.querySelector(q)}
-  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j]]; } return a; }
+
+  // первичный рендер инвентаря
+  drawInv();
+
 })();
 </script>
 </body>
