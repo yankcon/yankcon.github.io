@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v35)</title>
+<title>Mini App — Tap / Case / Inventory (v36)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -14,7 +14,7 @@
     --seg-h:54px;
 
     --stage-w: min(92vw, 560px);
-    --stage-h: clamp(200px, 52vw, 360px);
+    --stage-h: clamp(220px, 52vw, 360px);
     --card-w : clamp(120px, 28vw, 220px);
   }
   html,body{height:100%;margin:0}
@@ -28,12 +28,14 @@
       linear-gradient(180deg,var(--bg1),var(--bg2));
   }
 
+  /* баланс */
   #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
     border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #wallet img{width:22px;height:22px;display:block}
   #balance{font-weight:800}
 
+  /* верхние кнопки */
   #reset-btn,#back-cases{
     position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
     background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
@@ -42,11 +44,13 @@
   #reset-btn{top:10px}
   #back-cases{top:44px;display:none}
 
+  /* FX */
   #fx-layer{position:fixed;inset:0;pointer-events:none;z-index:5}
   .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
     transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
   @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
 
+  /* нижняя панель — blur-оверлей поверх контента */
   .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
     display:grid;grid-template-columns:repeat(4,1fr);
     background:rgba(10,11,18,.68); backdrop-filter: blur(8px) saturate(120%);
@@ -76,9 +80,12 @@
   #cat-a{opacity:1} #cat-b{opacity:0}
   .btn{font-size:clamp(22px,5vw,40px);text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25)}
 
-  /* CASE — список */
-  #tab-1{width:100%;height:100%;overflow:auto}
-  .case-host{display:grid;justify-items:center;align-content:start;gap:14px;padding-top:8vh}
+  /* CASE — список (scroll) */
+  #tab-1{width:100%;height:100%;overflow:auto;
+    padding-top:72px; /* под верхние кнопки */ 
+    padding-bottom:calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0));
+  }
+  .case-host{display:grid;justify-items:center;align-content:start;gap:14px}
   .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
   .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
   .case-card img{width:min(70vw, 340px);height:auto;object-fit:contain;border-radius:12px}
@@ -93,14 +100,15 @@
   .case-preview.hide{opacity:0}
   .case-preview img{width:100%;height:100%;object-fit:contain}
 
-  .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 300ms ease}
+  .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 300ms ease;
+    will-change:transform; contain:paint;}
   .reel.visible{opacity:1}
   .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
-  .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translate3d(0,0,0)}
+  .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translate3d(0,0,0);contain:paint}
 
-  .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:6px}
-  .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 60px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-  .card .label{font-size:13px;margin-bottom:8px;opacity:.95}
+  .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:4px}
+  .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 48px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+  .card .label{font-size:12px;margin:0 0 4px 0;opacity:.95;line-height:1.1;text-align:center}
   .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5)}
 
   .open-btn{display:block;margin:12px auto 10px;padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
@@ -110,16 +118,18 @@
   .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
   .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
 
-  /* дропы — уезжают под панель */
+  /* список дропов — уезжает под панель (визуально разделы поверх) */
   .drops{margin:18px auto 0;max-width:var(--stage-w);
-         display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+         display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+         padding-bottom:120px;}
   .drop{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
   .drop img{width:100%;height:120px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
   .drop .t{font-size:12px;text-align:center}
   .drop .p{font-weight:800}
 
-  /* INVENTORY */
-  #tab-2{width:100%;height:100%;overflow:auto}
+  /* INVENTORY (scroll + отступы от интерфейса) */
+  #tab-2{width:100%;height:100%;overflow:auto;
+    padding:72px 12px calc(var(--seg-h) + 24px + env(safe-area-inset-bottom,0));}
   .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
   .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center;cursor:pointer}
   .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
@@ -142,12 +152,11 @@
   <button id="back-cases">назад</button>
   <div id="fx-layer"></div>
 
-  <!-- звук открытия кейса: два источника -->
-<audio id="sfx-open" preload="auto" playsinline>
-  <source src="case_open.MP3" type="audio/mpeg">
-  <source src="case_open.mp3" type="audio/mpeg">
-  <source src="%D0%BE%D1%82%D0%BA%D1%80%D1%8B%D1%82%D0%B8%D0%B5%20%D0%BA%D0%B5%D0%B9%D1%81%D0%B0.MP3" type="audio/mpeg">
-</audio>
+  <!-- звук открытия кейса: оба имени файла -->
+  <audio id="sfx-open" preload="auto" playsinline>
+    <source src="case_open.MP3" type="audio/mpeg">
+    <source src="case_open.mp3" type="audio/mpeg">
+  </audio>
 
   <main id="views">
     <!-- TAP -->
@@ -201,7 +210,7 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v35</footer>
+  <footer>v36</footer>
 
   <!-- Модалка инвентаря -->
   <div id="modal" class="modal" aria-hidden="true">
@@ -220,11 +229,17 @@
 (function(){
   const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
 
-  /* ——— навигация */
+  /* ——— навигация + автосохранение дропа при уходе */
   const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
   const views = { earn:$('#tab-earn'), '1':$('#tab-1'), '2':$('#tab-2'), '3':$('#tab-3') };
   tabs.forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.tab)));
   function switchTo(name){
+    // если ушли из кейса во время/после открытия — автосохранить
+    if(name!=='1'){
+      if(pendingPrize){ invAdd(pendingPrize); pendingPrize=null; }
+      else if(lastWin){ invAdd(lastWin); lastWin=null; }
+      spinning=false;
+    }
     tabs.forEach(t=>t.classList.toggle('is-active', t.dataset.tab===name));
     Object.entries(views).forEach(([k,v])=>v.classList.toggle('is-active', k===name));
     if(name==='1') views['1'].scrollTo({top:0,behavior:'auto'});
@@ -278,7 +293,7 @@
     { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
   ];
 
-  // предзагрузка (мягкая)
+  // мягкая предзагрузка изображений
   (async function preload(){
     try { await Promise.all(ITEMS.map(it => new Promise(res => {
       const im = new Image(); im.decoding='async'; im.src = it.src; (im.decode?im.decode():Promise.resolve()).finally(res);
@@ -287,7 +302,7 @@
 
   renderDrops();
 
-  let selectedCost=null, spinning=false, lastWin=null;
+  let selectedCost=null, spinning=false, lastWin=null, pendingPrize=null;
 
   $('#case-card').addEventListener('click', openCase);
   backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
@@ -295,17 +310,19 @@
   function openCase(){
     selectedCost=50; tabCase.scrollTo({top:0,behavior:'auto'});
     casesList.style.display='none'; openView.classList.add('is-active'); backBtn.style.display='inline-block';
-    caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null;
+    caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null; pendingPrize=null;
     track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
   function resetCaseView(){
     openView.classList.remove('is-active'); casesList.style.display=''; backBtn.style.display='none';
-    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null;
+    selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null; pendingPrize=null;
     track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
 
-  /* ——— плавная анимация 7.0s + овершут 300ms */
+  /* ——— плавная анимация 7.0s + овершут 300ms (с привязкой к физ. пикселям) */
   const SPIN_MS = 7000, RETURN_MS = 300, OVERSHOOT_PX = 12;
+  const DPR = (window.devicePixelRatio||1);
+  const snapToPixel = x => Math.round(x*DPR)/DPR; // убирает микро-дёргание на мобилках
 
   caseOpen.addEventListener('click', async ()=>{
     if(spinning) return;
@@ -315,37 +332,25 @@
 
     balance -= cost; saveBal(); drawBal();
 
-    // звук
     try { sfxOpen.currentTime = 0; await sfxOpen.play(); } catch(_) {}
 
-    const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)]; lastWin = prize;
+    const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+    lastWin = null;               // финальное значение установим после остановки
+    pendingPrize = prize;         // если уйдём со страницы — этот предмет добавим в инвентарь
     buildTrackWithWin(prize);
 
-    // показать рулетку, скрыть превью → и только потом мерить размеры
     casePreview.classList.add('hide');
     setTimeout(()=>{
       reel.classList.add('visible');
-      // ждём один кадр для layout, потом стартуем
       requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(prize)));
     }, 80);
 
-    // страховка: если что-то пойдёт не так, через duration всё равно завершим
-    const safety = setTimeout(()=>{
-      if(spinning) finishSpin(getCenterIndex());
-    }, SPIN_MS + RETURN_MS + 120);
-
-    function getCenterIndex(){
-      const span = ITEMS.length, mid = Math.floor(span/2), rep = 6;
-      return (rep-1)*span + mid;
-    }
-
     function startSpin(){
       const first = track.firstElementChild;
-      if(!first){ finishSpin(getCenterIndex()); return; }
-
-      const cardW = first.getBoundingClientRect().width || 180;
+      const cardW = first ? first.getBoundingClientRect().width : 180;
       const center = (reel.clientWidth - cardW)/2;
-      const idx = getCenterIndex();
+      const span = ITEMS.length, mid = Math.floor(span/2), rep = 6;
+      const idx = (rep-1)*span + mid;
       const distance = idx*cardW - center;
 
       const t0 = performance.now();
@@ -354,7 +359,8 @@
       function animMain(now){
         const p = Math.min((now - t0) / SPIN_MS, 1);
         const eased = easeOutCubic(p);
-        track.style.transform = `translate3d(${-distance*eased - OVERSHOOT_PX}px,0,0)`;
+        const x = snapToPixel(-distance*eased - OVERSHOOT_PX);
+        track.style.transform = `translate3d(${x}px,0,0)`;
         if (p < 1) requestAnimationFrame(animMain);
         else animReturn(distance, idx);
       }
@@ -365,7 +371,7 @@
       const start = performance.now();
       function tick(now){
         const p = Math.min((now - start)/RETURN_MS, 1);
-        const x = -distance - OVERSHOOT_PX*(1 - p);
+        const x = snapToPixel(-distance - OVERSHOOT_PX*(1 - p));
         track.style.transform = `translate3d(${x}px,0,0)`;
         if(p < 1) requestAnimationFrame(tick);
         else finishSpin(idx);
@@ -376,9 +382,10 @@
     function finishSpin(idx){
       [...track.children].forEach(e=>e.classList.remove('win'));
       track.children[idx]?.classList.add('win');
+      lastWin = pendingPrize;     // спин завершился → это и есть итог
       spinning=false; caseOpen.disabled=false;
       actions.classList.add('is-active');
-      sellBtn.textContent=`Продать — ${lastWin?.price ?? 0} Taps`;
+      sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
     }
   });
 
@@ -409,7 +416,7 @@
     }
   }
 
-  /* ——— INVENTORY с модалкой */
+  /* ——— INVENTORY */
   const KEY_INV = 'inventory:'+ (tg?.initDataUnsafe?.user?.id ?? 'anon');
   const invGrid = $('#inv-grid');
   const modal     = $('#modal');
@@ -442,8 +449,16 @@
   }
   function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
-  $('#keep-btn').addEventListener('click', ()=>{ if(!lastWin) return; invAdd(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); });
-  $('#sell-btn').addEventListener('click', ()=>{ if(!lastWin) return; balance+=lastWin.price; saveBal(); drawBal(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+  $('#keep-btn').addEventListener('click', ()=>{ if(!lastWin) return; invAdd(lastWin); actions.classList.remove('is-active'); pendingPrize=null; tg?.showAlert?.('Сохранено в инвентарь'); });
+  $('#sell-btn').addEventListener('click', ()=>{ if(!lastWin) return; balance+=lastWin.price; saveBal(); drawBal(); actions.classList.remove('is-active'); pendingPrize=null; tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+
+  /* reset */
+  $('#reset-btn').addEventListener('click', ()=>{
+    localStorage.removeItem(KEY_BAL);
+    localStorage.removeItem(KEY_INV);
+    balance=0; drawBal(); drawInv();
+    tg?.showAlert?.('Сброс выполнен');
+  });
 
   /* helpers */
   function $(q){return document.querySelector(q)}
