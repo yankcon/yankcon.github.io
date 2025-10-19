@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v39)</title>
+<title>Mini App — Tap / Case / Inventory (v40)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Опционально: живой бэкенд. Если не нужен — оставь пустыми константы в JS ниже. -->
 <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -27,13 +26,11 @@
       radial-gradient(1000px 800px at 100% 120%, rgba(255,59,129,.18), transparent 70%),
       linear-gradient(180deg,var(--bg1),var(--bg2));
   }
-  /* баланс */
   #wallet{position:fixed;top:10px;right:10px;z-index:30;display:inline-flex;align-items:center;gap:8px;
     padding:8px 12px;font-size:14px;background:var(--glass);border:1px solid var(--glass-border);
     border-radius:12px;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #wallet img{width:22px;height:22px;display:block}
   #balance{font-weight:800}
-  /* верхние кнопки */
   #reset-btn,#back-cases{
     position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
     background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
@@ -41,12 +38,10 @@
   }
   #reset-btn{top:10px}
   #back-cases{top:44px;display:none}
-  /* FX */
   #fx-layer{position:fixed;inset:0;pointer-events:none;z-index:5}
   .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.95;
     transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
   @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
-  /* нижняя панель */
   .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
     display:grid;grid-template-columns:repeat(4,1fr);
     background:rgba(10,11,18,.68);backdrop-filter:blur(8px) saturate(120%);
@@ -87,8 +82,8 @@
   .reel.visible{opacity:1}
   .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
   .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translate3d(0,0,0);contain:paint}
-  .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:4px}
-  .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 48px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
+  .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:2px}
+  .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 52px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
   .card .label{font-size:12px;margin:0 0 4px 0;line-height:1.1;text-align:center}
   .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5)}
   .open-btn{display:block;margin:12px auto 10px;padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
@@ -128,14 +123,12 @@
   <button id="back-cases">назад</button>
   <div id="fx-layer"></div>
 
-  <!-- звук -->
   <audio id="sfx-open" preload="auto" playsinline>
     <source src="case_open.MP3" type="audio/mpeg">
     <source src="case_open.mp3" type="audio/mpeg">
   </audio>
 
   <main id="views">
-    <!-- TAP -->
     <section id="tab-earn" class="view is-active">
       <div class="tap-center">
         <div class="tap-wrap">
@@ -145,7 +138,6 @@
       </div>
     </section>
 
-    <!-- CASE -->
     <section id="tab-1" class="view">
       <div class="case-host">
         <div id="cases-list" class="cases-list">
@@ -171,11 +163,7 @@
       </div>
     </section>
 
-    <!-- INVENTORY -->
-    <section id="tab-2" class="view">
-      <div class="inv-grid" id="inv-grid"></div>
-    </section>
-
+    <section id="tab-2" class="view"><div class="inv-grid" id="inv-grid"></div></section>
     <section id="tab-3" class="view"></section>
   </main>
 
@@ -186,9 +174,8 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v39</footer>
+  <footer>v40</footer>
 
-  <!-- modal -->
   <div id="modal" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true">
       <img id="modal-img" alt="" />
@@ -205,93 +192,80 @@
 (async function(){
   const tg = window.Telegram?.WebApp; tg?.ready?.(); tg?.expand?.();
 
-  /* ========= 0) НАСТРОЙКА ОПЦИОНАЛЬНОГО БЭКЕНДА ДЛЯ «ЖИВОГО» СИНКА =========
-     Если хочешь реальный лайв-синк между ПК/телефоном:
-     1) Создай проект в supabase.com
-     2) Таблицы:
-        -- profiles
-           user_id text primary key
-           balance bigint not null default 0
-        -- inventory
-           id bigserial primary key
-           user_id text not null
-           key text, name text, price int, src text
-           created_at timestamptz default now()
-     3) Включи Realtime для обеих таблиц.
-     4) Вставь URL и anon key ниже. Если оставить пустыми — будет CloudStorage/LocalStorage. */
-  const SUPABASE_URL  = ""; // <- вставь при желании
-  const SUPABASE_ANON = ""; // <- вставь при желании
+  /* ====== (0) Настройка Supabase — оставь ПУСТО, если не нужен живой синк ====== */
+  const SUPABASE_URL  = "";   // вставь при желании
+  const SUPABASE_ANON = "";   // вставь при желании
   const db = (SUPABASE_URL && SUPABASE_ANON && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:false } })
     : null;
 
-  /* ========= 1) ХРАНИЛКА: CloudStorage (TG) + LocalStorage, либо Supabase ========= */
-  const PREFIX = 'v39:';                       // общий сброс для всех прошлых версий
+  /* ====== (1) Хранилище: CloudStorage+Local или Supabase ====== */
+  const PREFIX='v40:';                         // глобальный сброс/миграция
   const uid = String(tg?.initDataUnsafe?.user?.id ?? 'anon');
 
   const cloud = tg?.cloudStorage || tg?.CloudStorage;
-  const csGet  = (k)=> new Promise(r=> cloud?.getItem?.(PREFIX+k,(e,v)=>r(v??null)) ?? r(null));
-  const csSet  = (k,v)=> new Promise(r=> cloud?.setItem?.(PREFIX+k,v,()=>r(true)) ?? r(false));
-  const lsGet  = (k)=> localStorage.getItem(PREFIX+k);
-  const lsSet  = (k,v)=> localStorage.setItem(PREFIX+k,v);
+  const csGet = (k)=>new Promise(r=>cloud?.getItem?.(PREFIX+k,(e,v)=>r(v??null)) ?? r(null));
+  const csSet = (k,v)=>new Promise(r=>cloud?.setItem?.(PREFIX+k,v,()=>r(true)) ?? r(false));
+  const lsGet = (k)=>localStorage.getItem(PREFIX+k);
+  const lsSet = (k,v)=>localStorage.setItem(PREFIX+k,v);
+  const lsDelAll=()=>Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).forEach(k=>localStorage.removeItem(k));
 
-  async function storeGet(k, def=null){
+  async function storeGet(k,def=null){
     if(db){
       if(k==='bal'){
         const {data}=await db.from('profiles').select('balance').eq('user_id',uid).maybeSingle();
-        return (data?.balance!=null)? String(data.balance): (await csGet(k)) ?? lsGet(k) ?? def;
+        if(data?.balance!=null) return String(data.balance);
       }
       if(k==='inv'){
         const {data}=await db.from('inventory').select('*').eq('user_id',uid).order('created_at',{ascending:true});
         return JSON.stringify(data||[]);
       }
+      if(k==='pending'){
+        const {data}=await db.from('profiles').select('pending').eq('user_id',uid).maybeSingle();
+        if(data?.pending!=null) return data.pending;
+      }
     }
-    let v = await csGet(k); if(v==null) v = lsGet(k);
+    let v=await csGet(k); if(v==null) v=lsGet(k);
     return v ?? def;
   }
   async function storeSet(k,v){
     lsSet(k,v); csSet(k,v).catch(()=>{});
-    if(db){
-      if(k==='bal'){ await db.from('profiles').upsert({user_id:uid,balance:parseInt(v||'0',10)||0}); }
-      if(k==='inv'){  // синхронизация инвентаря (простая замена)
-        try{
-          const current = JSON.parse(v||'[]');
-          await db.from('inventory').delete().eq('user_id',uid);
-          if(current.length){ await db.from('inventory').insert(current.map(x=>({user_id:uid,key:x.key,name:x.name,price:x.price,src:x.src,created_at:new Date()}))); }
-        }catch(_){}
-      }
+    if(!db) return;
+    if(k==='bal'){
+      await db.from('profiles').upsert({user_id:uid,balance:parseInt(v||'0',10)||0});
+    }else if(k==='inv'){
+      try{
+        const arr=JSON.parse(v||'[]');
+        await db.from('inventory').delete().eq('user_id',uid);
+        if(arr.length) await db.from('inventory').insert(arr.map(x=>({user_id:uid,key:x.key,name:x.name,price:x.price,src:x.src,created_at:new Date()})));
+      }catch(_){}
+    }else if(k==='pending'){
+      await db.from('profiles').upsert({user_id:uid,balance:parseInt((await storeGet('bal','0'))||'0',10),pending:v||null});
     }
   }
 
-  // live-события из supabase (если настроен)
-  if(db){
-    db.channel('realtime:'+uid)
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`user_id=eq.${uid}`},
-        payload=>{ const b=payload?.new?.balance; if(b!=null){ balance=+b; lsSet('bal',String(balance)); drawBal(); } })
-      .on('postgres_changes',{event:'*',schema:'public',table:'inventory',filter:`user_id=eq.${uid}`},
-        async ()=>{ if(activeTab==='2'){ await drawInv(true); } })
-      .subscribe();
-  }
-
-  /* ========= 2) НАВИГАЦИЯ И РАМКА ОБРАБОТКИ УХОДА ========= */
-  const tabs  = Array.from(document.querySelectorAll('.segbar .seg'));
-  const views = { earn:$('#tab-earn'), '1':$('#tab-1'), '2':$('#tab-2'), '3':$('#tab-3') };
+  /* ====== (2) Навигация ====== */
+  const tabs=Array.from(document.querySelectorAll('.segbar .seg'));
+  const views={ earn:$('#tab-earn'),'1':$('#tab-1'),'2':$('#tab-2'),'3':$('#tab-3') };
   let activeTab='earn', autoKeepAfterSpin=false;
   tabs.forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.tab)));
   function switchTo(name){
-    if(activeTab==='1' && name!=='1' && spinning){ autoKeepAfterSpin = true; }
+    if(activeTab==='1' && name!=='1' && spinning) autoKeepAfterSpin=true;
     activeTab=name;
-    tabs.forEach(t=>t.classList.toggle('is-active', t.dataset.tab===name));
-    Object.entries(views).forEach(([k,v])=>v.classList.toggle('is-active', k===name));
+    tabs.forEach(t=>t.classList.toggle('is-active',t.dataset.tab===name));
+    Object.entries(views).forEach(([k,v])=>v.classList.toggle('is-active',k===name));
     if(name==='1') views['1'].scrollTo({top:0,behavior:'auto'});
     if(name!=='1' && !spinning) resetCaseView();
     if(name==='2') drawInv();
   }
 
-  /* ========= 3) БАЛАНС / ТАП ========= */
+  /* ====== (3) Баланс / TAP ====== */
   let balance = parseInt(await storeGet('bal','0'),10);
-  const $bal = $('#balance'); const drawBal=()=>($bal.textContent=balance); drawBal();
-  $('#hello-btn').addEventListener('click', (ev)=>{ spawnSparks(ev); balance++; storeSet('bal',String(balance)); drawBal(); flipCat(); });
+  const $bal=$('#balance'); const drawBal=()=>($bal.textContent=balance); drawBal();
+
+  $('#hello-btn').addEventListener('click',(ev)=>{
+    spawnSparks(ev); balance++; storeSet('bal',String(balance)); drawBal(); flipCat();
+  });
 
   function spawnSparks(ev){
     const btn=$('#hello-btn'), r=btn.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
@@ -309,32 +283,38 @@
   }
   let flip=false; function flipCat(){ $('#cat-a').style.opacity=flip?0:1; $('#cat-b').style.opacity=flip?1:0; flip=!flip; }
 
-  /* ========= 4) CASE / РУЛЕТКА ========= */
-  const tabCase   = views['1'];
-  const casesList = $('#cases-list');
-  const openView  = $('#case-open-view');
-  const casePrev  = $('#case-preview');
-  const caseOpen  = $('#case-open');
-  const actions   = $('#case-actions');
-  const sellBtn   = $('#sell-btn');
-  const keepBtn   = $('#keep-btn');
-  const dropsEl   = $('#drops');
-  const reel      = $('#reel');
-  const track     = $('#reel-track');
-  const backBtn   = $('#back-cases');
-  const sfxOpen   = $('#sfx-open');
+  /* ====== (4) CASE / Reel ====== */
+  const tabCase=views['1'];
+  const casesList=$('#cases-list');
+  const openView=$('#case-open-view');
+  const casePrev=$('#case-preview');
+  const caseOpen=$('#case-open');
+  const actions=$('#case-actions');
+  const sellBtn=$('#sell-btn');
+  const keepBtn=$('#keep-btn');
+  const dropsEl=$('#drops');
+  const reel=$('#reel');
+  const track=$('#reel-track');
+  const backBtn=$('#back-cases');
+  const sfxOpen=$('#sfx-open');
 
-  const ITEMS = [
-    { key:'business', name:'Деловой Рома', price:100, src:'roma_business.jpg' },
-    { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
-    { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
+  const ITEMS=[
+    {key:'business',name:'Деловой Рома',price:100,src:'roma_business.jpg'},
+    {key:'kind',    name:'Добри Рома',  price:50, src:'roma_kind.jpg'},
+    {key:'tough',   name:'Забивной Рома',price:25,src:'roma_tough.jpg'}
   ];
   renderDrops();
 
   let spinning=false, lastWin=null;
+  let assetsReady=false;
+  async function preloadAll(){
+    const p = ITEMS.map(it=>new Promise(res=>{const im=new Image(); im.onload=im.onerror=()=>res(); im.src=it.src;}));
+    await Promise.all(p); assetsReady=true;
+  }
+  preloadAll();
 
-  $('#case-card').addEventListener('click', openCase);
-  backBtn.addEventListener('click', ()=>{ if(!spinning) resetCaseView(); });
+  $('#case-card').addEventListener('click',openCase);
+  backBtn.addEventListener('click',()=>{ if(!spinning) resetCaseView(); });
 
   function openCase(){
     tabCase.scrollTo({top:0,behavior:'auto'});
@@ -348,62 +328,67 @@
     track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePrev.classList.remove('hide');
   }
 
-  const SPIN_MS = 7000, RETURN_MS = 300, OVERSHOOT_PX = 12;
-  const DPR = (window.devicePixelRatio||1);
-  const snap = x => Math.round(x*DPR)/DPR;
+  const SPIN_MS=7000, RETURN_MS=300, OVERSHOOT=12;
+  const DPR=(window.devicePixelRatio||1);
+  const snap=x=>Math.round(x*DPR)/DPR;
 
   caseOpen.addEventListener('click', async ()=>{
     if(spinning) return;
-    if(balance < 50){ tg?.showAlert?.('Недостаточно тапов'); return; }
+    if(balance<50){ tg?.showAlert?.('Недостаточно тапов'); return; }
+    if(!assetsReady) await preloadAll();
+
     spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
-    balance -= 50; await storeSet('bal',String(balance)); drawBal();
+    balance-=50; await storeSet('bal',String(balance)); drawBal();
     try{ sfxOpen.currentTime=0; await sfxOpen.play(); }catch(_){}
 
     const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)];
-    const idx = buildTrackWithWin(prize);          // вернёт индекс целевой карточки
-    lastWin = null;
+    await storeSet('pending', JSON.stringify({key:prize.key, t:Date.now()})); // ← фикс: гарантируем дроп
+
+    const idx = buildTrackWithWin(prize); // цель по центру всей дорожки
+    lastWin=null;
 
     casePrev.classList.add('hide');
     setTimeout(()=>{
       reel.classList.add('visible');
-      requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(idx, prize)));
+      requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(idx,prize)));
     },80);
   });
 
   function startSpin(targetIndex, prize){
-    const first = track.firstElementChild;
-    const cardW = first ? first.getBoundingClientRect().width : 180;
-    const center = (reel.clientWidth - cardW)/2;
-    const distance = targetIndex*cardW - center;
+    const first=track.firstElementChild;
+    const cardW = first ? first.getBoundingClientRect().width || 160 : 160;
+    const center=(reel.clientWidth - cardW)/2;
+    const distance=targetIndex*cardW - center;
 
-    const t0 = performance.now();
-    function animMain(now){
-      const p = Math.min((now - t0)/SPIN_MS, 1);
-      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
-      track.style.transform = `translate3d(${snap(-distance*eased - OVERSHOOT_PX)}px,0,0)`;
-      if(p < 1) requestAnimationFrame(animMain);
-      else animReturn(distance, targetIndex, prize);
+    const t0=performance.now();
+    function anim(now){
+      const p=Math.min((now-t0)/SPIN_MS,1);
+      const eased=1-Math.pow(1-p,3);
+      track.style.transform=`translate3d(${snap(-distance*eased - OVERSHOOT)}px,0,0)`;
+      if(p<1) requestAnimationFrame(anim);
+      else animReturn(distance,targetIndex,prize);
     }
-    requestAnimationFrame(animMain);
+    requestAnimationFrame(anim);
   }
-  function animReturn(distance, idx, prize){
-    const start = performance.now();
+  function animReturn(distance,idx,prize){
+    const s=performance.now();
     function tick(now){
-      const p = Math.min((now - start)/RETURN_MS, 1);
-      track.style.transform = `translate3d(${snap(-distance - OVERSHOOT_PX*(1-p))}px,0,0)`;
-      if(p < 1) requestAnimationFrame(tick);
-      else finishSpin(idx, prize);
+      const p=Math.min((now-s)/RETURN_MS,1);
+      track.style.transform=`translate3d(${snap(-distance - OVERSHOOT*(1-p))}px,0,0)`;
+      if(p<1) requestAnimationFrame(tick);
+      else finishSpin(idx,prize);
     }
     requestAnimationFrame(tick);
   }
   async function finishSpin(idx, prize){
     [...track.children].forEach(e=>e.classList.remove('win'));
     track.children[idx]?.classList.add('win');
-    lastWin = prize;
-    spinning=false; caseOpen.disabled=false;
+    lastWin=prize; spinning=false; caseOpen.disabled=false;
 
+    // автодобавление если ушли / или включили autoKeep
     if(autoKeepAfterSpin || activeTab!=='1'){
       await invAdd(prize);
+      await storeSet('pending',""); // очищаем pending
       autoKeepAfterSpin=false;
       tg?.showAlert?.(`Выпало: ${prize.name} — добавлено в инвентарь`);
       resetCaseView();
@@ -413,31 +398,30 @@
     }
   }
 
-  // динамическая сборка трека с большим запасом по обеим сторонам
   function buildTrackWithWin(win){
     track.innerHTML='';
-    // Временная карта — получить реальную ширину
-    const tmp=document.createElement('div'); tmp.className='card';
-    tmp.innerHTML=`<img src="${ITEMS[0].src}"><div class="label">${ITEMS[0].name}</div>`;
-    track.appendChild(tmp);
-    const cardW = tmp.getBoundingClientRect().width || 160; track.innerHTML='';
+    // измеряем фактическую ширину карточки (с загруженной картинкой)
+    const probe=document.createElement('div'); probe.className='card';
+    probe.innerHTML=`<img src="${ITEMS[0].src}"><div class="label">${ITEMS[0].name}</div>`;
+    track.appendChild(probe);
+    const cardW = probe.getBoundingClientRect().width || 160; track.innerHTML='';
 
-    const visible = Math.max(3, Math.ceil(reel.clientWidth / cardW));
-    const span = ITEMS.length;
-    const rep = Math.max(visible*6, 24);           // достаточно, чтобы справа/слева был запас
+    const span=ITEMS.length;
+    const visible=Math.max(3, Math.ceil(reel.clientWidth / cardW));
+    const rep = Math.max(visible*6, 24);              // большой запас
     const mid = Math.floor(span/2);
-    const middleRep = Math.floor(rep/2);           // «средняя пачка»
-    const targetIndex = middleRep*span + mid;      // целевой индекс в центре всей дорожки
+    const midRep=Math.floor(rep/2);
+    const targetIndex = midRep*span + mid;
 
     for(let r=0;r<rep;r++){
-      const arr = shuffle(ITEMS.slice());          // каждый ряд в случайном порядке
-      if(r===middleRep){
-        const i=arr.findIndex(x=>x.key===win.key); // в средней пачке приз → по центру
-        if(i!==-1){ [arr[mid], arr[i]] = [arr[i], arr[mid]]; }
+      const arr=shuffle(ITEMS.slice());
+      if(r===midRep){
+        const i=arr.findIndex(x=>x.key===win.key);
+        if(i!==-1){ [arr[mid],arr[i]]=[arr[i],arr[mid]]; }
       }
       for(const it of arr){
         const el=document.createElement('div'); el.className='card';
-        el.innerHTML = `<img src="${it.src}" alt="${it.name}"><div class="label">${it.name}</div>`;
+        el.innerHTML=`<img src="${it.src}" alt="${it.name}"><div class="label">${it.name}</div>`;
         track.appendChild(el);
       }
     }
@@ -448,55 +432,50 @@
     dropsEl.innerHTML='';
     for(const it of ITEMS){
       const d=document.createElement('div'); d.className='drop';
-      d.innerHTML = `<img src="${it.src}" alt=""><div class="t">${it.name}</div><div class="p">${it.price} Taps</div>`;
+      d.innerHTML=`<img src="${it.src}" alt=""><div class="t">${it.name}</div><div class="p">${it.price} Taps</div>`;
       dropsEl.appendChild(d);
     }
   }
 
-  /* ========= 5) ИНВЕНТАРЬ (DB или Cloud/Local) ========= */
-  const invGrid   = $('#inv-grid');
-  const modal     = $('#modal');
-  const modalImg  = $('#modal-img');
-  const modalTitle= $('#modal-title');
-  const modalPrice= $('#modal-price');
-  const modalSell = $('#modal-sell');
-  const modalClose= $('#modal-close');
+  /* ====== (5) Inventory + модалка ====== */
+  const invGrid=$('#inv-grid');
+  const modal=$('#modal'), modalImg=$('#modal-img'), modalTitle=$('#modal-title'), modalPrice=$('#modal-price');
+  const modalSell=$('#modal-sell'), modalClose=$('#modal-close');
 
   async function invGet(){
     if(db){
       const {data}=await db.from('inventory').select('*').eq('user_id',uid).order('created_at',{ascending:true});
       return data||[];
     }
-    try{ return JSON.parse(await storeGet('inv','[]')); }catch(_){ return []; }
+    try{return JSON.parse(await storeGet('inv','[]'));}catch(_){return[]}
   }
   async function invSetAll(arr){
     if(db){
       await db.from('inventory').delete().eq('user_id',uid);
-      if(arr.length) await db.from('inventory').insert(arr.map(x=>({...x,user_id:uid,created_at:new Date()})));
-      return;
+      if(arr.length) await db.from('inventory').insert(arr.map(x=>({user_id:uid,key:x.key,name:x.name,price:x.price,src:x.src,created_at:new Date()})));
+    }else{
+      await storeSet('inv', JSON.stringify(arr));
     }
-    await storeSet('inv', JSON.stringify(arr));
   }
   async function invAdd(it){
     if(db){
       await db.from('inventory').insert({user_id:uid,key:it.key,name:it.name,price:it.price,src:it.src});
-      if(activeTab==='2') drawInv(true);
+      if(activeTab==='2') drawInv();
       return;
     }
     const a=await invGet(); a.push({...it,id:Date.now().toString(36)}); await invSetAll(a); drawInv();
   }
   async function invDelById(id){
     if(db){
-      await db.from('inventory').delete().eq('id', id);
-      if(activeTab==='2') drawInv(true);
+      await db.from('inventory').delete().eq('id',id);
+      if(activeTab==='2') drawInv();
       return;
     }
     const a=await invGet(); await invSetAll(a.filter(x=>x.id!==id)); drawInv();
   }
 
-  async function drawInv(forceCloud=false){
-    const inv = await invGet();
-    invGrid.innerHTML='';
+  async function drawInv(){
+    const inv=await invGet(); invGrid.innerHTML='';
     if(!inv.length) return;
     for(const it of inv){
       const c=document.createElement('div'); c.className='inv-card';
@@ -511,31 +490,93 @@
     modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
     modalSell.onclick=async()=>{
       balance+=it.price; await storeSet('bal',String(balance)); drawBal();
-      await invDelById(it.id ?? it.id); // у Supabase id числовой, у локального — строка
-      closeModal(); tg?.showAlert?.(`Продано за ${it.price}`);
+      await invDelById(it.id??it.id); closeModal(); tg?.showAlert?.(`Продано за ${it.price}`);
     };
     modalClose.onclick=closeModal; modal.onclick=e=>{ if(e.target===modal) closeModal(); };
   }
   function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
-  $('#keep-btn').addEventListener('click', async ()=>{ if(!lastWin) return; await invAdd(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); });
-  $('#sell-btn').addEventListener('click', async ()=>{ if(!lastWin) return; balance+=lastWin.price; await storeSet('bal',String(balance)); drawBal(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
+  $('#keep-btn').addEventListener('click', async ()=>{ if(!lastWin) return; await invAdd(lastWin); await storeSet('pending',""); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); });
+  $('#sell-btn').addEventListener('click', async ()=>{ if(!lastWin) return; balance+=lastWin.price; await storeSet('bal',String(balance)); drawBal(); await storeSet('pending',""); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); });
 
-  /* ========= 6) RESET ========= */
-  $('#reset-btn').addEventListener('click', async ()=>{
-    if(db){
-      await db.from('inventory').delete().eq('user_id',uid);
-      await db.from('profiles').upsert({user_id:uid,balance:0});
+  /* ====== (6) Pending: начислить дроп, даже если ушли раньше ====== */
+  // при запуске проверяем «хвосты»
+  try{
+    const pend = await storeGet('pending','');
+    if(pend){
+      const p=JSON.parse(pend); const prize=ITEMS.find(x=>x.key===p.key);
+      if(prize){ await invAdd(prize); await storeSet('pending',""); }
     }
-    lsSet('bal','0'); lsSet('inv','[]'); if(cloud){ await csSet('bal','0'); await csSet('inv','[]'); }
+  }catch(_){}
+
+  /* ====== (7) Reset ====== */
+  $('#reset-btn').addEventListener('click', async ()=>{
+    lsDelAll(); if(cloud){ await csSet('bal','0'); await csSet('inv','[]'); await csSet('pending',''); }
+    if(db){ await db.from('inventory').delete().eq('user_id',uid); await db.from('profiles').upsert({user_id:uid,balance:0,pending:null}); }
     balance=0; drawBal(); drawInv(); tg?.showAlert?.('Сброшено');
   });
 
-  /* ========= helpers ========= */
+  /* helpers */
   function $(q){return document.querySelector(q)}
-  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
 
   // первичный рендер
+  // --- CloudStorage near-real-time sync (без бэкенда) ---
+let syncTimer = null;
+
+async function pullCloudOnce() {
+  if (!cloud) return; // cloud = tg.CloudStorage уже есть в коде
+  try {
+    // баланс
+    const bStr = await csGet('bal'); // csGet уже объявлен выше
+    if (bStr != null) {
+      const b = parseInt(bStr, 10);
+      if (!Number.isNaN(b) && b !== balance) { balance = b; drawBal(); }
+    }
+
+    // инвентарь
+    const invStr = await csGet('inv');
+    if (invStr) {
+      // если отличается локальная версия — перерисуем (просто вызываем drawInv)
+      // (хранение/сравнение хэшом опционально; для простоты просто рисуем)
+      await storeSet('inv', invStr); // обновим локальный кэш тем, что в облаке
+      if (activeTab === '2') await drawInv();
+    }
+
+    // незавершённый дроп (если вышли до конца прокрутки)
+    const pend = await csGet('pending');
+    if (pend) {
+      try {
+        const p = JSON.parse(pend);
+        const prize = ITEMS.find(x => x.key === p.key);
+        if (prize) {
+          await invAdd(prize);
+          await storeSet('pending', ""); // очищаем
+          if (activeTab !== '2') tg?.showAlert?.(`Выпало: ${prize.name} — добавлено в инвентарь`);
+        }
+      } catch(_) {}
+    }
+  } catch(_) {}
+}
+
+function startCloudSync() {
+  stopCloudSync();
+  // первый раз сразу тянем
+  pullCloudOnce();
+  // дальше — каждые 2 секунды
+  syncTimer = setInterval(pullCloudOnce, 2000);
+}
+function stopCloudSync() { if (syncTimer) { clearInterval(syncTimer); syncTimer = null; } }
+
+// тянем при возврате в приложение/на вкладку
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopCloudSync();
+  else startCloudSync();
+});
+
+// запускаем пуллинг при старте
+startCloudSync();
+
   drawInv();
 })();
 </script>
