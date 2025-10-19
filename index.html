@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v30)</title>
+<title>Mini App — Tap / Case / Inventory (v31)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -50,7 +50,7 @@
     transform:translate(0,0) rotate(0deg);animation:pop var(--dur,700ms) ease-out forwards}
   @keyframes pop{80%{opacity:1}100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}}
 
-  /* нижняя панель — полупрозрачная с blur, поверх контента */
+  /* нижняя панель — полупрозрачная с blur, лежит СВЕРХУ контента */
   .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));
     display:grid;grid-template-columns:repeat(4,1fr);
     background:rgba(10,11,18,.68); backdrop-filter: blur(10px) saturate(120%);
@@ -60,11 +60,11 @@
   .seg.is-active{color:#fff;background:rgba(255,255,255,.10);box-shadow:inset 0 2px rgba(255,255,255,.25)}
   footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
 
-  /* контейнер вкладок: убираем нижний padding — контент уходит под панель */
+  /* контейнер вкладок: НА ВЕСЬ ЭКРАН, без нижнего паддинга — контент уходит под панель */
   main{
     width:100%;max-width:100%;
-    height:calc(100dvh - var(--seg-h));
-    padding:16px 12px 8px; /* было calc(var(--seg-h)...) */
+    height:100dvh;
+    padding:16px 12px 8px;
     box-sizing:border-box; overflow:hidden;
   }
   .view{display:none;position:relative}
@@ -86,8 +86,7 @@
   .cases-list{display:grid;grid-template-columns:1fr;justify-items:center;gap:14px;width:100%}
   .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
   /* картинка кейса — полностью, без обрезки */
-  .case-card img{width:min(70vw, 320px);height:auto;object-fit:contain;border-radius:12px}
-
+  .case-card img{width:min(70vw, 340px);height:auto;object-fit:contain;border-radius:12px}
   .case-title{font-weight:800}
   .case-card .price{font-weight:800;font-size:16px;opacity:.9}
 
@@ -97,12 +96,12 @@
   .case-stage{position:relative;width:var(--stage-w);height:var(--stage-h);margin:0 auto;border-radius:14px}
   .case-preview{position:absolute;inset:0;border-radius:14px;overflow:hidden;opacity:1;transition:opacity 400ms ease}
   .case-preview.hide{opacity:0}
-  .case-preview img{width:100%;height:100%;object-fit:contain} /* <— тоже не режем */
+  .case-preview img{width:100%;height:100%;object-fit:contain} /* не режем */
 
   .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 300ms ease}
   .reel.visible{opacity:1}
   .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
-  .reel-track{display:flex;align-items:center;height:100%;will-change:transform}
+  .reel-track{display:flex;align-items:center;height:100%;will-change:transform;transform:translateZ(0)}
 
   .card{flex:0 0 var(--card-w);width:var(--card-w);height:100%;display:grid;grid-template-rows:1fr auto;align-items:stretch;justify-items:center;gap:6px}
   .card img{width:calc(var(--card-w) - 6px);height:calc(var(--stage-h) - 60px);object-fit:contain;border-radius:10px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
@@ -116,9 +115,8 @@
   .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
   .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
 
-  /* список возможных предметов — до самого низа, под панелью видно через blur */
-  .drops{margin:18px auto 180px; /* extra space чтоб можно было доскроллить */ 
-         max-width:var(--stage-w);
+  /* список возможных предметов — БЕЗ отступа снизу: уходит под панель */
+  .drops{margin:18px auto 0;max-width:var(--stage-w);
          display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .drop{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
   .drop img{width:100%;height:120px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
@@ -130,7 +128,6 @@
   .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
   .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
   .inv-card img{width:100%;height:110px;object-fit:contain;border-radius:8px;border:1px solid var(--glass-border);background:rgba(0,0,0,.15)}
-
 </style>
 </head>
 <body>
@@ -191,7 +188,7 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v30</footer>
+  <footer>v31</footer>
 
 <script>
 (function(){
@@ -270,42 +267,43 @@
     track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
 
-  /* ——— анимация CS:GO-стиля: 70% линейно, затем короткое замедление */
-  const SPIN_MS = 2600; // общая длительность (можешь 2400–3000)
+  /* ——— плавная анимация 3.5s: быстрый старт → равномерное плавное замедление */
+  const SPIN_MS = 3500; // длительность
   caseOpen.addEventListener('click', ()=>{
     if(spinning) return;
-    if(balance < (selectedCost||50)) { tg?.showAlert?.('Недостаточно тапов'); return; }
+    const cost = selectedCost||50;
+    if(balance < cost) { tg?.showAlert?.('Недостаточно тапов'); return; }
     spinning=true; caseOpen.disabled=true; actions.classList.remove('is-active');
-    balance -= (selectedCost||50); saveBal(); drawBal();
+    balance -= cost; saveBal(); drawBal();
 
     const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)]; lastWin = prize;
     buildTrackWithWin(prize);
 
     casePreview.classList.add('hide');
-    setTimeout(()=>{ reel.classList.add('visible'); }, 100);
+    setTimeout(()=>{ reel.classList.add('visible'); }, 80);
 
     requestAnimationFrame(()=>{
       const first = track.querySelector('.card');
       const w = first ? first.getBoundingClientRect().width : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 160;
       const center = (reel.clientWidth - w)/2;
-      const span = ITEMS.length, mid = Math.floor(span/2), rep=5; // чуть больше состояний
+      const span = ITEMS.length, mid = Math.floor(span/2), rep=5;
       const idx = (rep-1)*span + mid;
-      const off = idx*w - center;
+      const distance = idx*w - center;   // сколько «пролететь»
 
-      track.style.transform = 'translateX(0px)';
-
-      const anim = track.animate([
-        { transform: 'translateX(0px)', easing: 'linear', offset: 0 },
-        { transform: `translateX(${-off*0.7}px)`, easing: 'linear', offset: 0.7 }, // равномерное «прокручивание»
-        { transform: `translateX(${-off}px)`, easing: 'cubic-bezier(0.08,0.6,0.12,1)', offset: 1 } // короткое замедление
-      ], { duration: SPIN_MS, fill: 'forwards' });
-
-      anim.addEventListener('finish', ()=>{
-        highlightWin(idx);
-        spinning=false; caseOpen.disabled=false;
-        actions.classList.add('is-active');
-        sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
-      });
+      const t0 = performance.now();
+      const easeOutCubic = t => 1 - Math.pow(1 - t, 3); // плавное замедление
+      (function tick(now){
+        const p = Math.min((now - t0) / SPIN_MS, 1);
+        const eased = easeOutCubic(p);
+        track.style.transform = `translateX(${-distance * eased}px)`;
+        if (p < 1) requestAnimationFrame(tick);
+        else {
+          highlightWin(idx);
+          spinning=false; caseOpen.disabled=false;
+          actions.classList.add('is-active');
+          sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
+        }
+      })(t0);
     });
   });
 
@@ -336,13 +334,12 @@
     }
   }
 
-  /* ——— inventory (без изменений логики) */
+  /* ——— inventory (минимум) */
   const KEY_INV = 'inventory:'+ (tg?.initDataUnsafe?.user?.id ?? 'anon');
   const invGrid = $('#inv-grid');
   function invGet(){ try{return JSON.parse(localStorage.getItem(KEY_INV)||'[]');}catch(_){return[]} }
   function invSet(v){ localStorage.setItem(KEY_INV, JSON.stringify(v)); }
   function invAdd(it){ const a=invGet(); a.push({...it,id:Date.now().toString(36)}); invSet(a); drawInv(); }
-  function invDel(id){ invSet(invGet().filter(x=>x.id!==id)); drawInv(); }
   function drawInv(){
     const inv=invGet(); invGrid.innerHTML='';
     if(!inv.length) return;
@@ -360,7 +357,6 @@
   /* helpers */
   function $(q){return document.querySelector(q)}
   function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
-
 })();
 </script>
 </body>
