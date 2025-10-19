@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Мини-апп — Tap + Case + Инвентарь (v26)</title>
+  <title>Mini App — Tap / Case / Inventory (v27)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
@@ -38,7 +38,7 @@
     #reset-btn,#back-cases{
       position:fixed;left:10px;z-index:30;padding:8px 12px;font-size:12px;letter-spacing:.3px;color:var(--fg);
       background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;backdrop-filter:blur(4px);
-      cursor:pointer;outline:none;transition:opacity .2s ease,transform .05s ease
+      cursor:pointer;outline:none;transition:transform .05s ease
     }
     #reset-btn{top:10px}
     #back-cases{top:44px;display:none}
@@ -53,28 +53,27 @@
       100%{transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--rot,0deg));opacity:0}
     }
 
-    /* общий контент: высота экрана минус панель, без скролла (скролл задаём на нужных вкладках) */
+    /* основной контейнер без скролла; скролл включаем на нужных вкладках */
     main{
       width:100%;max-width:100%;
       padding:16px 12px calc(var(--seg-h) + env(safe-area-inset-bottom,0));
       box-sizing:border-box;
       height:calc(100dvh - var(--seg-h));
-      overflow:hidden; /* по умолчанию нет скролла — как нужно для TAP */
+      overflow:hidden;
     }
     .view{display:none;gap:var(--gap)}
     .view.is-active{display:grid}
 
-    /* TAP — строго по центру, без прокрутки */
+    /* === TAP: только котик и кнопка, строго по центру, без прокрутки === */
     #tab-earn{
       width:100%;height:100%;
-      display:grid;place-items:center; /* центр вертикаль/горизонт */
-      overflow:hidden;
+      display:grid;place-items:center;overflow:hidden;
     }
     .tap-wrap{position:relative}
     .tap-cat{position:absolute;left:50%;transform:translateX(-50%) translateY(-10px);bottom:100%;height:90px;pointer-events:none}
     .tap-cat img{position:absolute;left:50%;transform:translateX(-50%);top:0;height:90px;transition:opacity .08s ease}
     #cat-a{opacity:1} #cat-b{opacity:0}
-    .btn{font-size:clamp(22px,5vw,40px);letter-spacing:1px;text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);transition:transform .06s ease,filter .2s ease}
+    .btn{font-size:clamp(22px,5vw,40px);letter-spacing:1px;text-transform:uppercase;padding:22px 46px;border:0;border-radius:18px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff6a55);box-shadow:0 16px 40px rgba(255,59,48,.25), inset 0 -3px rgba(0,0,0,.25);transition:transform .06s ease}
     .btn:active{transform:translateY(1px) scale(.995)}
 
     /* общие кнопки */
@@ -82,19 +81,17 @@
     .btn-secondary{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,#6b7280,#4b5563)}
     .btn-primary[disabled]{opacity:.5;cursor:not-allowed}
 
-    /* нижняя панель */
+    /* нижнее меню */
     .segbar{position:fixed;z-index:25;left:0;right:0;bottom:0;height:calc(var(--seg-h) + env(safe-area-inset-bottom,0));display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:stretch;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.75) 100%);border-top:1px solid var(--glass-border)}
     .seg{display:grid;place-items:center;font-size:12px;letter-spacing:.3px;color:#cfd3ff;background:rgba(255,255,255,.04)}
     .seg + .seg{border-left:1px solid rgba(255,255,255,.08)}
     .seg.is-active{color:#fff;background:rgba(255,255,255,.12);box-shadow:inset 0 2px rgba(255,255,255,.25)}
-    footer{position:fixed;bottom:calc(var(--seg-h) + 4px + env(safe-area-inset-bottom,0));left:8px;font-size:12px;opacity:.45;z-index:16}
 
-    /* CASE (список) — прокручиваемый, один кейс по центру, ближе к верху */
+    /* === CASE list: только кейсы, прокручивается, текущий — по центру и ближе к верху === */
     #tab-1{
       width:100%;height:100%;
-      overflow:auto; /* эта вкладка может скроллиться */
-      display:grid;justify-items:center;align-content:start;
-      padding-top:8vh; /* чуть ближе к верху */
+      overflow:auto;display:grid;justify-items:center;align-content:start;
+      padding-top:8vh;
     }
     .cases-list{width:100%;display:grid;grid-template-columns:1fr;justify-items:center;gap:14px}
     .case-card{display:grid;gap:10px;justify-items:center;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(255,59,129,.12));border:1px solid var(--glass-border);box-shadow:inset 0 1px rgba(255,255,255,.08);cursor:pointer}
@@ -102,13 +99,13 @@
     .case-title{font-weight:800}
     .case-card .price{font-weight:800;font-size:16px;opacity:.85}
 
-    /* ВНУТРИ КЕЙСА — сцена 220x220, по центру, вертикально в третьей четверти */
+    /* === внутри кейса: только превью/рулетка + кнопки === */
     .case-open-view{
       width:100%;height:100%;
-      display:none; /* включаю на входе */
-      grid-auto-rows:auto;justify-items:center;align-content:start;
-      overflow:hidden; /* без скролла на экране открытия */
-      padding-top:max(0px, calc(62.5vh - 160px)); /* центр сцены ≈ третья четверть */
+      display:none;grid-auto-rows:auto;justify-items:center;align-content:start;
+      overflow:hidden;
+      /* вертикаль в 3-й четверти экрана */
+      padding-top:max(0px, calc(62.5vh - 160px));
       gap:12px;
     }
     .case-open-view.is-active{display:grid}
@@ -117,7 +114,6 @@
     .case-preview.hide{opacity:0}
     .case-preview img{width:100%;height:100%;object-fit:cover}
 
-    /* рулетка поверх превью, на том же месте */
     .reel{position:absolute;inset:0;opacity:0;overflow:hidden;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.06);transition:opacity 500ms ease}
     .reel.visible{opacity:1}
     .reel::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-1px);background:linear-gradient(180deg,transparent,rgba(255,255,255,.75),transparent)}
@@ -128,21 +124,13 @@
     .card.win .label{color:#ffd400;text-shadow:0 0 14px rgba(255,212,0,.5);opacity:1}
 
     .open-btn{padding:14px 22px;border-radius:14px;border:0;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--brand1),var(--brand2));box-shadow:0 12px 28px rgba(124,58,237,.32)}
-
     .actions{display:none;gap:10px;justify-content:center}
     .actions.is-active{display:grid;grid-auto-flow:column}
     .a-btn{padding:12px 18px;border-radius:12px;border:0;color:#fff;cursor:pointer}
     .sell{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
     .keep{background:linear-gradient(135deg,#22c55e,#16a34a)}
 
-    /* список предметов — ниже, 2 в ряд, отдельный блок */
-    .pricelist{width:100%;max-width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:320px;overflow-y:auto;padding:4px 4px 10px;margin-top:12px}
-    .pricelist .mini{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
-    .pricelist .mini img{width:100%;height:90px;object-fit:contain;background:rgba(0,0,0,.15);border:1px solid var(--glass-border);border-radius:8px}
-    .mini .t{font-size:12px;opacity:.9;text-align:center}
-    .mini .p{font-weight:800}
-
-    /* инвентарь (как раньше) */
+    /* === INVENTORY: только предметы/пусто, без заглушек === */
     #tab-2{width:100%;height:100%;overflow:auto;display:grid;align-content:start}
     .inv-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
     .inv-card{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);border-radius:12px;padding:8px;display:grid;gap:6px;justify-items:center}
@@ -179,11 +167,11 @@
           <img id="cat-a" src="cat1.png" alt="cat a">
           <img id="cat-b" src="cat2.png" alt="cat b">
         </div>
-        <button id="hello-btn" class="btn" aria-label="привет">TAP</button>
+        <button id="hello-btn" class="btn">TAP</button>
       </div>
     </section>
 
-    <!-- CASE (list) -->
+    <!-- CASE (list only) -->
     <section id="tab-1" class="view" role="region" aria-labelledby="tabbtn-1">
       <div id="cases-list" class="cases-list">
         <div class="case-card" id="case-card" role="button" tabindex="0" aria-label="Открыть кейс">
@@ -193,27 +181,24 @@
         </div>
       </div>
 
-      <!-- Внутри кейса -->
+      <!-- INSIDE CASE (no extra content besides preview/roulette + buttons) -->
       <section id="case-open-view" class="case-open-view">
         <div class="case-stage" id="case-stage">
           <div id="case-preview" class="case-preview"><img src="case.png" alt="Кейс"></div>
           <div class="reel" id="reel"><div class="reel-track" id="reel-track"></div></div>
         </div>
         <button id="case-open" class="open-btn">Открыть — 50 Taps</button>
-
         <div class="actions" id="case-actions">
           <button class="a-btn sell btn-primary" id="sell-btn">Продать</button>
           <button class="a-btn keep btn-secondary" id="keep-btn">Сохранить</button>
         </div>
-
-        <div class="pricelist" id="pricelist"></div>
       </section>
     </section>
 
     <!-- INVENTORY -->
     <section id="tab-2" class="view" role="region" aria-labelledby="tabbtn-2">
       <div class="inv-grid" id="inv-grid"></div>
-      <div id="empty-inv" class="case-card" style="display:none;">Инвентарь пуст</div>
+      <!-- пусто, если нет предметов -->
     </section>
 
     <section id="tab-3" class="view" role="region" aria-labelledby="tabbtn-3">
@@ -221,7 +206,7 @@
     </section>
   </main>
 
-  <nav class="segbar" role="tablist" aria-label="Навигация по разделам">
+  <nav class="segbar" role="tablist" aria-label="Навигация">
     <div class="seg is-active" id="tabbtn-earn" role="tab" aria-controls="tab-earn" data-tab="earn">Tap</div>
     <div class="seg" id="tabbtn-1" role="tab" aria-controls="tab-1" data-tab="1">Case</div>
     <div class="seg" id="tabbtn-2" role="tab" aria-controls="tab-2" data-tab="2">Inventory</div>
@@ -241,14 +226,12 @@
     </div>
   </div>
 
-  <footer>v26</footer>
-
   <script>
   (function(){
     const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
     if (tg){ tg.ready(); tg.expand(); }
 
-    // --- UI refs
+    // === refs
     const tapBtn   = document.getElementById('hello-btn');
     const fxLayer  = document.getElementById('fx-layer');
     const resetBtn = document.getElementById('reset-btn');
@@ -267,10 +250,8 @@
       tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab===name));
       Object.entries(views).forEach(([k,v]) => v.classList.toggle('is-active', k===name));
       ensureBackVisibility();
-      if (name!=='1') resetCaseView();
-      if (name!=='2') closeModal();
-      // управление скроллом по требованиям
-      // main без скролла; #tab-1 и #tab-2 сами прокручиваются, #tab-earn — нет
+      if (name!=='1') resetCaseView(); // не держим открытый кейс при уходе
+      if (name!=='2') closeModal();     // не держим модалку инвентаря
     }
     tabs.forEach(t => t.addEventListener('click', () => switchTo(t.dataset.tab)));
 
@@ -283,12 +264,13 @@
     function saveBal(){ try{ localStorage.setItem(STORAGE_BAL,String(balance)); }catch(_){ } }
     function renderBalance(){ balanceEl.textContent = balance; }
 
-    // tap + cats
+    // TAP only: котик + кнопка
     const catA = document.getElementById('cat-a');
     const catB = document.getElementById('cat-b');
-    attachFallback(catA,['cat1.png','cat_1.png','catA.png']);
-    attachFallback(catB,['cat2.png','cat_2.png','catB.png']);
+    attachFallback(catA,['cat1.png']);
+    attachFallback(catB,['cat2.png']);
     let catFlip=false;
+
     tapBtn.addEventListener('click', (ev)=>{
       spawnSparks(ev);
       balance+=1; saveBal(); renderBalance();
@@ -297,7 +279,8 @@
 
     resetBtn.addEventListener('click', ()=>{
       if (tg?.showPopup){
-        tg.showPopup({title:'Обнуление',message:'Сбросить баланс?',buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}]},(id)=>{ if(id==='yes') doReset(); });
+        tg.showPopup({title:'Обнуление',message:'Сбросить баланс?',buttons:[{id:'yes',type:'destructive',text:'Сбросить'},{type:'cancel'}]},
+          (id)=>{ if(id==='yes') doReset(); });
       } else if (confirm('Сбросить баланс?')) doReset();
     });
     function doReset(){ balance=0; saveBal(); renderBalance(); tg?.showAlert?.('Баланс: 0'); }
@@ -322,7 +305,7 @@
       }
     }
 
-    // === CASE ===
+    // === CASE (list + inside) ===
     const casesList   = document.getElementById('cases-list');
     const caseCard    = document.getElementById('case-card');
     const openView    = document.getElementById('case-open-view');
@@ -331,7 +314,6 @@
     const actions     = document.getElementById('case-actions');
     const sellBtn     = document.getElementById('sell-btn');
     const keepBtn     = document.getElementById('keep-btn');
-    const pricelistEl = document.getElementById('pricelist');
 
     const reel = document.getElementById('reel');
     const track= document.getElementById('reel-track');
@@ -341,7 +323,6 @@
       { key:'kind',     name:'Добри Рома',   price:50,  src:'roma_kind.jpg' },
       { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
     ];
-    renderPriceList();
 
     let selectedCost=null, spinning=false, lastWin=null;
 
@@ -360,7 +341,6 @@
       caseCard.addEventListener('click', openCase);
       caseCard.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCase(); }});
     }
-    casesList?.addEventListener('click', e=>{ if (e.target.closest('#case-card')) openCase(); });
 
     backBtn.addEventListener('click', ()=>{ if (spinning) return; resetCaseView(); });
 
@@ -377,7 +357,7 @@
 
     caseOpen.addEventListener('click', ()=>{
       if (spinning) return;
-      if (!selectedCost) selectedCost = 50;             // страховка
+      if (!selectedCost) selectedCost = 50;
       if (balance < selectedCost){ tg?.showAlert?.('Недостаточно тапов'); return; }
 
       spinning = true; caseOpen.disabled = true; actions.classList.remove('is-active');
@@ -430,7 +410,7 @@
         for (const it of arr){
           const el=document.createElement('div'); el.className='card';
           const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
-          attachFallback(img,[it.src,it.src.replace('.jpg','.jpeg'),it.src.replace('.jpg','.JPG'),it.src.replace('.jpg','.png')]);
+          attachFallback(img,[it.src]);
           const lab=document.createElement('div'); lab.className='label'; lab.textContent=it.name;
           el.appendChild(img); el.appendChild(lab); track.appendChild(el);
         }
@@ -439,22 +419,8 @@
     function highlightWin(idx){ const items=[...track.children]; items.forEach(e=>e.classList.remove('win')); const el=items[idx]; if (el) el.classList.add('win'); }
     function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 
-    function renderPriceList(){
-      pricelistEl.innerHTML='';
-      for (const it of ITEMS){
-        const box=document.createElement('div'); box.className='mini';
-        const img=document.createElement('img'); img.alt=it.name; img.src=it.src;
-        attachFallback(img,[it.src,it.src.replace('.jpg','.jpeg'),it.src.replace('.jpg','.JPG'),it.src.replace('.jpg','.png')]);
-        const t=document.createElement('div'); t.className='t'; t.textContent=it.name;
-        const p=document.createElement('div'); p.className='p'; p.textContent=it.price+' Taps';
-        box.appendChild(img); box.appendChild(t); box.appendChild(p);
-        pricelistEl.appendChild(box);
-      }
-    }
-
-    // === INVENTORY ===
+    // === INVENTORY only ===
     const invGrid   = document.getElementById('inv-grid');
-    const emptyInv  = document.getElementById('empty-inv');
     const modal     = document.getElementById('modal');
     const modalImg  = document.getElementById('modal-img');
     const modalTitle= document.getElementById('modal-title');
@@ -472,7 +438,7 @@
     function removeFromInventory(id){ setInv(getInv().filter(x=>x.id!==id)); }
     function renderInventory(){
       const inv=getInv(); invGrid.innerHTML='';
-      if (inv.length===0){ emptyInv.style.display='grid'; return; } else emptyInv.style.display='none';
+      if (inv.length===0) return; // пусто = ничего не показываем
       for (const it of inv){
         const card=document.createElement('div'); card.className='inv-card';
         card.innerHTML=`<img src="${it.src}" alt="${it.name}"><div class="title">${it.name}</div>`;
@@ -485,33 +451,22 @@
       modalImg.src=item.src; modalTitle.textContent=item.name; modalPrice.textContent=`Цена: ${item.price}`;
       modal.classList.add('show');
       const sell=()=>{ balance+=item.price; saveBal(); renderBalance(); removeFromInventory(item.id); renderInventory(); closeModal(); tg?.showAlert?.(`Продано за ${item.price}`); };
-      const close=()=>closeModal();
-      modalSell.onclick=sell; modalClose.onclick=close; modal.onclick=(e)=>{ if(e.target===modal) closeModal(); };
+      modalSell.onclick=sell; modalClose.onclick=closeModal; modal.onclick=(e)=>{ if(e.target===modal) closeModal(); };
     }
     function closeModal(){ modal.classList.remove('show'); }
     renderInventory();
 
     // actions after spin
-    sellBtn.addEventListener('click', ()=>{
-      if (!lastWin) return;
-      balance += lastWin.price; saveBal(); renderBalance();
-      actions.classList.remove('is-active');
-      tg?.showAlert?.(`Продано: +${lastWin.price}`);
-    });
-    keepBtn.addEventListener('click', ()=>{
-      if (!lastWin) return;
-      addToInventory(lastWin);
-      actions.classList.remove('is-active');
-      tg?.showAlert?.('Сохранено в инвентарь');
-      renderInventory();
-    });
+    const keepBtnHandler = ()=>{ if (!lastWin) return; addToInventory(lastWin); actions.classList.remove('is-active'); tg?.showAlert?.('Сохранено в инвентарь'); renderInventory(); };
+    const sellBtnHandler = ()=>{ if (!lastWin) return; balance += lastWin.price; saveBal(); renderBalance(); actions.classList.remove('is-active'); tg?.showAlert?.(`Продано: +${lastWin.price}`); };
+    keepBtn.addEventListener('click', keepBtnHandler);
+    sellBtn.addEventListener('click', sellBtnHandler);
 
     // helpers
-    function attachFallback(img, variants){
-      let i=0; img.addEventListener('error',()=>{ if(++i<variants.length) img.src=variants[i]; else img.style.opacity=.4; });
-    }
+    function attachFallback(img, variants){ let i=0; img.addEventListener('error',()=>{ if(++i<variants.length) img.src=variants[i]; else img.style.opacity=.4; }); }
+    function ensureBackVisibility(){ backBtn.style.display = openView.classList.contains('is-active') ? 'inline-block' : 'none'; }
 
-    // старт с TAP
+    // старт
     switchTo('earn');
   })();
   </script>
