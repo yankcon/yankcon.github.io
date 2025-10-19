@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mini App — Tap / Case / Inventory (v34)</title>
+<title>Mini App — Tap / Case / Inventory (v35)</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -200,7 +200,7 @@
     <div class="seg" data-tab="3">3</div>
   </nav>
 
-  <footer>v34</footer>
+  <footer>v35</footer>
 
   <!-- Модалка инвентаря -->
   <div id="modal" class="modal" aria-hidden="true">
@@ -277,7 +277,7 @@
     { key:'tough',    name:'Забивной Рома',price:25,  src:'roma_tough.jpg' }
   ];
 
-  // предварительная загрузка картинок, чтобы не дёргалось на телефонах
+  // предзагрузка (мягкая)
   (async function preload(){
     try { await Promise.all(ITEMS.map(it => new Promise(res => {
       const im = new Image(); im.decoding='async'; im.src = it.src; (im.decode?im.decode():Promise.resolve()).finally(res);
@@ -295,15 +295,15 @@
     selectedCost=50; tabCase.scrollTo({top:0,behavior:'auto'});
     casesList.style.display='none'; openView.classList.add('is-active'); backBtn.style.display='inline-block';
     caseOpen.disabled=false; actions.classList.remove('is-active'); lastWin=null;
-    track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
   function resetCaseView(){
     openView.classList.remove('is-active'); casesList.style.display=''; backBtn.style.display='none';
     selectedCost=null; caseOpen.disabled=true; actions.classList.remove('is-active'); lastWin=null;
-    track.innerHTML=''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+    track.innerHTML=''; track.style.transform='translate3d(0,0,0)'; reel.classList.remove('visible'); casePreview.classList.remove('hide');
   }
 
-  /* ——— плавная анимация 7.0s + овершут 300ms, без дёрганий */
+  /* ——— плавная анимация 7.0s + овершут 300ms */
   const SPIN_MS = 7000, RETURN_MS = 300, OVERSHOOT_PX = 12;
 
   caseOpen.addEventListener('click', async ()=>{
@@ -315,23 +315,38 @@
     balance -= cost; saveBal(); drawBal();
 
     // звук
-    try { sfxOpen.currentTime = 0; await sfxOpen.play(); } catch(_) { /* если не вышло — молча продолжаем */ }
+    try { sfxOpen.currentTime = 0; await sfxOpen.play(); } catch(_) {}
 
     const prize = ITEMS[Math.floor(Math.random()*ITEMS.length)]; lastWin = prize;
     buildTrackWithWin(prize);
 
+    // показать рулетку, скрыть превью → и только потом мерить размеры
     casePreview.classList.add('hide');
-    setTimeout(()=>{ reel.classList.add('visible'); }, 80);
+    setTimeout(()=>{
+      reel.classList.add('visible');
+      // ждём один кадр для layout, потом стартуем
+      requestAnimationFrame(()=>requestAnimationFrame(()=>startSpin(prize)));
+    }, 80);
 
-    requestAnimationFrame(()=>{
-      const first = track.querySelector('.card');
-      const cardW = first ? first.getBoundingClientRect().width : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 160;
+    // страховка: если что-то пойдёт не так, через duration всё равно завершим
+    const safety = setTimeout(()=>{
+      if(spinning) finishSpin(getCenterIndex());
+    }, SPIN_MS + RETURN_MS + 120);
+
+    function getCenterIndex(){
+      const span = ITEMS.length, mid = Math.floor(span/2), rep = 6;
+      return (rep-1)*span + mid;
+    }
+
+    function startSpin(){
+      const first = track.firstElementChild;
+      if(!first){ finishSpin(getCenterIndex()); return; }
+
+      const cardW = first.getBoundingClientRect().width || 180;
       const center = (reel.clientWidth - cardW)/2;
-      const span = ITEMS.length, mid = Math.floor(span/2), rep=6;
-      const idx = (rep-1)*span + mid;
+      const idx = getCenterIndex();
       const distance = idx*cardW - center;
 
-      // плавное равномерное замедление
       const t0 = performance.now();
       const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 
@@ -340,27 +355,30 @@
         const eased = easeOutCubic(p);
         track.style.transform = `translate3d(${-distance*eased - OVERSHOOT_PX}px,0,0)`;
         if (p < 1) requestAnimationFrame(animMain);
-        else animReturn();
-      }
-      function animReturn(){
-        const start = performance.now();
-        function tick(now){
-          const p = Math.min((now - start)/RETURN_MS, 1);
-          // лёгкий возврат на OVERSHOOT_PX к точной позиции
-          const x = -distance - OVERSHOOT_PX*(1 - p);
-          track.style.transform = `translate3d(${x}px,0,0)`;
-          if(p < 1) requestAnimationFrame(tick);
-          else {
-            highlightWin(idx);
-            spinning=false; caseOpen.disabled=false;
-            actions.classList.add('is-active');
-            sellBtn.textContent=`Продать — ${lastWin.price} Taps`;
-          }
-        }
-        requestAnimationFrame(tick);
+        else animReturn(distance, idx);
       }
       requestAnimationFrame(animMain);
-    });
+    }
+
+    function animReturn(distance, idx){
+      const start = performance.now();
+      function tick(now){
+        const p = Math.min((now - start)/RETURN_MS, 1);
+        const x = -distance - OVERSHOOT_PX*(1 - p);
+        track.style.transform = `translate3d(${x}px,0,0)`;
+        if(p < 1) requestAnimationFrame(tick);
+        else finishSpin(idx);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function finishSpin(idx){
+      [...track.children].forEach(e=>e.classList.remove('win'));
+      track.children[idx]?.classList.add('win');
+      spinning=false; caseOpen.disabled=false;
+      actions.classList.add('is-active');
+      sellBtn.textContent=`Продать — ${lastWin?.price ?? 0} Taps`;
+    }
   });
 
   function buildTrackWithWin(win){
@@ -381,7 +399,6 @@
       }
     }
   }
-  function highlightWin(i){ [...track.children].forEach(e=>e.classList.remove('win')); track.children[i]?.classList.add('win'); }
   function renderDrops(){
     dropsEl.innerHTML='';
     for(const it of ITEMS){
@@ -391,7 +408,7 @@
     }
   }
 
-  /* ——— INVENTORY */
+  /* ——— INVENTORY с модалкой */
   const KEY_INV = 'inventory:'+ (tg?.initDataUnsafe?.user?.id ?? 'anon');
   const invGrid = $('#inv-grid');
   const modal     = $('#modal');
