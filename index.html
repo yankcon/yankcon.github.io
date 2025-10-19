@@ -321,6 +321,20 @@
 
       let selectedCost = null; let spinning = false; let lastWin = null;
 
+      // вход в кейс по клику на карточку — восстановлено
+      const _caseCardEl = document.getElementById('case-card');
+      function openCase(){
+        selectedCost = 50; // один кейс
+        casesList.style.display = 'none';
+        openView.classList.add('is-active');
+        ensureBackVisibility();
+        if (caseOpen) { caseOpen.disabled = false; caseOpen.textContent = `Открыть — ${selectedCost} Taps`; }
+        actions.classList.remove('is-active'); lastWin = null;
+        track.innerHTML = ''; reel.classList.remove('visible'); casePreview.classList.remove('hide');
+        track.style.transform = 'translateX(0)'; track.style.transition = 'none';
+      }
+      if (_caseCardEl) _caseCardEl.addEventListener('click', openCase);
+
       $1
 
       // Back из кейса
